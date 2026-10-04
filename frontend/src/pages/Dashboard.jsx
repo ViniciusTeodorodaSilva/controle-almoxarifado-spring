@@ -1,0 +1,20 @@
+import { useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { api } from '../api/client'
+import { useResource } from '../hooks/useResource'
+import { PageHeader, ResourceView, DataTable, Badge, quantity, dateTime } from '../components/ui'
+export default function Dashboard() {
+ const loader=useCallback(signal=>Promise.all(['produtos','estoques','solicitacoes','movimentacoes'].map(name=>api.list(name,null,signal))),[])
+ const resource=useResource(loader)
+ return <><PageHeader eyebrow="VISÃO GERAL" title="Central operacional" description="Solicitações pendentes, saldos e atividade recente."><Link className="btn secondary" to="/produtos">Consultar catálogo</Link></PageHeader>
+ <ResourceView resource={resource}>{([products,stocks,requests,movements])=>{
+ const pending=requests.filter(s=>s.status==='PENDENTE')
+ return <>
+  <section className="kpi-strip" aria-label="Situação atual">{[['Produtos cadastrados',products.length,'/produtos'],['Estoques cadastrados',stocks.length,'/estoques'],['Solicitações pendentes',pending.length,'/solicitacoes'],['Movimentações',movements.length,'/movimentacoes']].map(([label,value,path])=><Link className="kpi" to={path} key={label}><span>{label}</span><strong>{quantity(value)}</strong></Link>)}</section>
+  <section className="operational-section"><div className="section-heading"><div><p className="section-label">ATENÇÃO OPERACIONAL</p><h2>Solicitações pendentes <span className="count-label">{pending.length}</span></h2></div><Link to="/solicitacoes">Consultar solicitações →</Link></div><DataTable empty="Nenhuma solicitação pendente." rows={[...pending].sort((a,b)=>a.id-b.id).slice(0,6)} columns={[{key:'id',label:'Solicitação',render:s=><strong>#{s.id}</strong>},{key:'solicitante',label:'Solicitante',render:s=>s.solicitante?.nome},{key:'local',label:'Almoxarifado',render:s=>s.almoxarifado?.nome},{key:'status',label:'Status',render:s=><Badge value={s.status}/>},{key:'data',label:'Solicitada em',render:s=>dateTime(s.dataSolicitacao)}]}/></section>
+  <div className="operational-grid"><section className="operational-section"><div className="section-heading"><div><p className="section-label">SITUAÇÃO ATUAL</p><h2>Saldos de estoque</h2></div><Link to="/estoques">Ver todos →</Link></div><DataTable empty="Nenhum estoque cadastrado." rows={stocks.slice(0,6)} columns={[{key:'produto',label:'Material',render:s=>s.produto?.nome},{key:'local',label:'Almoxarifado',render:s=>s.almoxarifado?.nome},{key:'quantidade',label:'Saldo',render:s=><span className="numeric">{quantity(s.quantidade)} {s.produto?.unidadeMedidaConfigurada?.sigla||s.produto?.unidadeMedida}</span>}]}/></section>
+  <section className="operational-section"><div className="section-heading"><div><p className="section-label">ATIVIDADE RECENTE</p><h2>Últimas movimentações</h2></div><Link to="/movimentacoes">Histórico →</Link></div><DataTable empty="Nenhuma movimentação registrada." rows={[...movements].sort((a,b)=>b.id-a.id).slice(0,6)} columns={[{key:'tipo',label:'Tipo',render:m=><Badge value={m.tipo}/>},{key:'produto',label:'Material',render:m=>m.produto?.nome},{key:'quantidade',label:'Qtd.',render:m=><span className="numeric">{quantity(m.quantidade)}</span>},{key:'data',label:'Data / hora',render:m=>dateTime(m.dataHora)}]}/></section></div>
+ </>}}</ResourceView>
+ <nav className="quick-links" aria-label="Acesso rápido"><span>Acesso rápido</span><Link to="/produtos">Produtos</Link><Link to="/solicitacoes">Solicitações</Link><Link to="/almoxarifados">Almoxarifados</Link></nav>
+ </>
+}

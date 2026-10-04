@@ -1,0 +1,26 @@
+import Brand from './Brand'
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { LayoutDashboard, ClipboardList, Warehouse, ArrowLeftRight, Package, Tags, Ruler, Building2, Users, HardHat, ShoppingCart, Wrench, ClipboardCheck, Menu, X, ChevronRight } from 'lucide-react'
+const groups = [
+  ['VISÃO GERAL', [['/dashboard','Dashboard',LayoutDashboard]]],
+  ['OPERAÇÃO', [['/solicitacoes','Solicitações',ClipboardList],['/estoques','Estoque',Warehouse],['/movimentacoes','Movimentações',ArrowLeftRight]]],
+  ['CATÁLOGO', [['/produtos','Produtos',Package],['/categorias','Categorias',Tags],['/unidades','Unidades de medida',Ruler]]],
+  ['ESTRUTURA', [['/almoxarifados','Almoxarifados',Building2],['/funcionarios','Funcionários',Users]]],
+  ['PRÓXIMOS MÓDULOS', [[null,'Obras / OS',HardHat],[null,'Compras',ShoppingCart],[null,'Ferramentas',Wrench],[null,'Inventário',ClipboardCheck]]]
+]
+export default function AppShell() {
+  const [open, setOpen] = useState(false)
+  const location = useLocation()
+  const current = groups.flatMap(group => group[1]).find(item => item[0] === location.pathname)?.[1] || 'BES'
+  return <div className="app-shell"><a className="skip-link" href="#content">Ir para conteúdo</a>
+    {open && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setOpen(false)}/>}
+    <aside className={`sidebar ${open ? 'is-open' : ''}`} aria-label="Menu principal">
+      <div className="brand"><Brand/><p>Gestão Operacional</p><button className="icon-button mobile-close" aria-label="Fechar menu" onClick={() => setOpen(false)}><X/></button></div>
+      <nav>{groups.map(([label, items]) => <div className="nav-group" key={label}><p>{label}</p>{items.map(([path, name, Icon]) => path ? <NavLink to={path} key={name} onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}><Icon size={18}/><span>{name}</span></NavLink> : <div className="nav-link upcoming" key={name}><Icon size={18}/><span>{name}</span><small>Em breve</small></div>)}</div>)}</nav>
+      <div className="sidebar-footer"><span className="status-dot"/>Núcleo operacional<span className="version">v0.1</span></div>
+    </aside>
+    <div className="workspace"><header className="topbar"><div className="flex items-center gap-3"><button className="icon-button menu-toggle" aria-label="Abrir menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu/></button><span className="breadcrumb">BES <ChevronRight size={14}/> <strong>{current}</strong></span></div><span className="environment">Operação</span></header>
+      <main id="content" className="main-content"><Outlet/></main><footer className="page-footer">BES · Plataforma de Gestão Operacional<span></span></footer>
+    </div></div>
+}
