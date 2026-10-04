@@ -4,7 +4,7 @@
 
 Continuação na `feature/bes-frontend`, a partir de `d704806`, preservando Catálogo Mestre (`263658d`), contratos e design aprovados. Monólito modular Spring Boot/JPA, React/Tailwind/Vite, H2 isolado para testes. Não há commit, push, alteração da main, mudança de credenciais ou acesso ao MySQL nesta rodada.
 
-O anexo do Bloco 2 define o escopo implementado. Em Downloads foi encontrada apenas `Documentacao_Mestre_Plataforma_BES_v1_3_atualizada.docx`. O texto completo da v1.4, mencionado no anexo, não estava disponível no repositório/Downloads; associação abaixo é provisória com **IDs realmente presentes na v1.3**, sem inventar RF de documentos. As diretrizes explícitas do anexo para documentos/mobile/segurança foram respeitadas. Atualizar a rastreabilidade quando a versão mais recente for fornecida.
+O anexo do Bloco 2 definiu o escopo implementado. Durante sua implementação, apenas a v1.3 estava disponível; a cobertura abaixo conserva esse registro histórico. Desde 04/10/2026, a [Documentação Mestre BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx) é a fonte oficial principal, abrangendo RF001–RF218. Novos blocos e revisões de cobertura devem consultá-la conforme [docs/README.md](README.md), preservando os requisitos e roadmap anteriores sem assumir implementação automática dos RFs adicionais.
 
 ## Limites e reposição
 
@@ -75,7 +75,7 @@ DTO e componente de detalhes reúnem os dados necessários a um futuro comprovan
 
 Os PNGs oficiais não estavam presentes. `Brand` conserva fallback textual BES e os caminhos `src/assets/brand/bes-logo-sidebar.png` / `bes-logo-full.png`, com proporção/object-fit e fallback preparados. Não houve logo inventada. Logo completa sobre fundo claro permanece preparada para futuros documentos/login, sem marcar esses requisitos concluídos.
 
-## Rastreabilidade de RFs (v1.3 disponível)
+## Rastreabilidade histórica do Bloco 2 (registrada com v1.3)
 
 | RF | Situação após este bloco |
 |---|---|
@@ -88,7 +88,7 @@ Os PNGs oficiais não estavam presentes. `Brand` conserva fallback textual BES e
 | RF033 — filtros funcionário/item/período/setor/OS/local/tipo | Parcial: filtros atuais e filtros novos de transferência; setor/OS e filtros completos server-side pendentes |
 | RF034 — necessidade/pedido de compra a partir de demanda aprovada | Não concluído: sugestão de reposição somente informativa, sem pedido de compra |
 | RF038 — dashboard conforme perfil | Parcial: alertas reais; perfil/autorização pendentes |
-| Diretriz v1.4 de PDF/QR/assinatura/template visual | Preparação apenas; IDs/escopo formal dependem do texto oficial não disponível |
+| RF205–RF218 — documentos operacionais (fonte atual v1.4) | Preparação de dados apenas; PDF, QR, impressão, assinaturas e template mestre não foram entregues neste bloco. Avaliar cobertura por RF nos próximos blocos, sem declarar conclusão pela preparação arquitetural |
 
 ## Verificações
 

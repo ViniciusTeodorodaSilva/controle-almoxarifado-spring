@@ -1,0 +1,47 @@
+# Documentação da Plataforma BES
+
+## Fonte mestre oficial atual
+
+Desde 04/10/2026, a [Documentação Mestre Plataforma BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx) é a **referência funcional oficial principal**, abrangendo **RF001–RF218**. Ela substitui a v1.3 como fonte mestre sem descartar requisitos, decisões ou roadmap anteriores compatíveis.
+
+O documento recebido foi comparado byte a byte com o arquivo canônico, confirmando conteúdo idêntico. A cópia redundante foi removida; somente `Documentacao_Mestre_Plataforma_BES_v1_4.docx` permanece como fonte oficial, sem edição do conteúdo Word. Usar esse caminho para referências futuras.
+
+O documento define o escopo e o roadmap, não o estado de implementação nem autorização para construir tudo imediatamente. A evolução permanece incremental em monólito modular, com compatibilidade e segurança, auditoria, rastreabilidade e integridade transversais.
+
+## Planejamento e cobertura por bloco
+
+Antes de cada bloco, identificar RFs, dependências, entregas completas, entregas parciais e pendências. Ao finalizar, registrar o comportamento entregue e a validação correspondente. Não marcar RF concluído apenas porque entidades, interfaces ou arquitetura foram preparadas. Coberturas históricas registradas com v1.3 continuam sendo histórico; novas análises devem consultar v1.4.
+
+## RF205–RF218 — documentos e operação em campo
+
+| RF | Diretriz oficial a considerar |
+|---|---|
+| RF205 | Documentos operacionais derivados de registros e fluxos, quando agregarem valor |
+| RF206 | Identidade visual oficial B&S Engenharia/BES, reutilizável |
+| RF207 | Tipo, número/identificador, status, data/hora e responsáveis |
+| RF208 | Contexto de obra, OS, centro de custo, almoxarifado e local, quando aplicável |
+| RF209 | Lista de separação de solicitação com itens e conferência |
+| RF210 | Comprovantes de retirada e entrega conforme necessidade do processo |
+| RF211 | Documento de saldo faltante/necessidade de compra vinculado à solicitação e produto |
+| RF212 | QR Code para identificação/acesso ao registro, respeitando autenticação e permissões |
+| RF213 | PDF e impressão sem obrigatoriedade de papel |
+| RF214 | Etapas equivalentes em tela/mobile quando documento físico não for necessário |
+| RF215 | Confirmações/assinaturas proporcionais ao risco e à política do processo |
+| RF216 | Template mestre com estrutura e componentes visuais comuns |
+| RF217 | Avaliação dos documentos úteis em cada módulo |
+| RF218 | Ações de geração, impressão e confirmação contextualizadas no fluxo |
+
+Essa diretriz não declara os RFs implementados. O Bloco 2 preparou dados para futuros comprovantes, mas não entregou PDF, QR ou assinaturas. Cada novo bloco deve avaliar cobertura real e dependências antes de assumir conclusão.
+
+Logo: utilizar os assets oficiais B&S quando disponíveis; não criar identidade substituta. Conservar fallback textual BES enquanto os PNGs não estiverem presentes. Caminhos preparados: `frontend/src/assets/brand/bes-logo-sidebar.png` e `bes-logo-full.png`.
+
+## Documentos técnicos existentes
+
+- [API operacional](api.md).
+- [Estabilização do backend](estabilizacao-backend.md).
+- [Catálogo Mestre](catalogo-mestre.md).
+- [Estoque inteligente e transferências](estoque-inteligente.md).
+- [Frontend](../frontend/README.md).
+- [Orientações para futuras sessões Codex](../AGENTS.md).
+
+Este registro modifica apenas documentação. Não aplica migrations, altera funcionalidades ou antecipa módulos do roadmap.

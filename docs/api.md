@@ -1,5 +1,7 @@
 # API operacional BES
 
+Fonte funcional oficial: [Documentação Mestre BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx), RF001–RF218. Planejamento e regras de cobertura: [índice de documentação](README.md). Este documento descreve os contratos implementados; não implica conclusão de todo o roadmap.
+
 Backend REST, base URL local padrão `http://localhost:8080`. IDs são inteiros. Respostas de sucesso preservam o contrato atual (HTTP 200); cadastros/atualizações recebem JSON e operações de estoque/solicitação usam query parameters. Não há autenticação nesta rodada. Não há paginação nem exclusão física.
 
 ## Todos os endpoints
