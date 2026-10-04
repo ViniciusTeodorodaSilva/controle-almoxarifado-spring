@@ -3,6 +3,7 @@ package br.com.almoxarifado.controller;
 import br.com.almoxarifado.model.Almoxarifado;
 import br.com.almoxarifado.service.AlmoxarifadoService;
 import org.springframework.web.bind.annotation.*;
+import br.com.almoxarifado.exception.RecursoNaoEncontradoException;
 
 import java.util.List;
 
@@ -24,11 +25,15 @@ public class AlmoxarifadoController {
     @GetMapping("/{id}")
     public Almoxarifado buscarPorId(@PathVariable Integer id) {
         return service.buscarPorId(id)
-                .orElse(null);
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarifado não encontrado"));
     }
 
     @PostMapping
     public Almoxarifado cadastrar(@RequestBody Almoxarifado almoxarifado) {
         return service.cadastrar(almoxarifado);
+    }
+    @PutMapping("/{id}")
+    public Almoxarifado atualizar(@PathVariable Integer id, @RequestBody Almoxarifado dados) {
+        return service.atualizar(id, dados);
     }
 }

@@ -3,6 +3,7 @@ package br.com.almoxarifado.controller;
 import br.com.almoxarifado.model.Funcionario;
 import br.com.almoxarifado.service.FuncionarioService;
 import org.springframework.web.bind.annotation.*;
+import br.com.almoxarifado.exception.RecursoNaoEncontradoException;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class FuncionarioController {
 
     @GetMapping("/{id}")
     public Funcionario buscarPorId(@PathVariable Integer id) {
-        return service.buscarPorId(id).orElse(null);
+        return service.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado"));
     }
 
     @PostMapping
@@ -31,4 +32,8 @@ public class FuncionarioController {
         return service.cadastrar(funcionario);
     }
 
+    @PutMapping("/{id}")
+    public Funcionario atualizar(@PathVariable Integer id, @RequestBody Funcionario dados) {
+        return service.atualizar(id, dados);
+    }
 }

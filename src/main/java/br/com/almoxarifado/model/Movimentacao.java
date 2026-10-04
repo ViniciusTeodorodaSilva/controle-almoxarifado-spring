@@ -1,12 +1,30 @@
 package br.com.almoxarifado.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "movimentacao")
 public class Movimentacao {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "solicitacao_id", foreignKey = @ForeignKey(name = "fk_movimentacao_solicitacao"))
+    @JsonIgnore
+    private Solicitacao solicitacao;
+
+    public Solicitacao getSolicitacao() {
+        return solicitacao;
+    }
+
+    public void setSolicitacao(Solicitacao solicitacao) {
+        this.solicitacao = solicitacao;
+    }
+
+    public Integer getSolicitacaoId() {
+        return solicitacao == null ? null : solicitacao.getId();
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -3,6 +3,7 @@ package br.com.almoxarifado.controller;
 import br.com.almoxarifado.model.Estoque;
 import br.com.almoxarifado.service.EstoqueService;
 import org.springframework.web.bind.annotation.*;
+import br.com.almoxarifado.exception.RecursoNaoEncontradoException;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class EstoqueController {
 
     @GetMapping("/{id}")
     public Estoque buscarPorId(@PathVariable Integer  id) {
-        return service.buscarPorId(id).orElse(null);
+        return service.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
     }
 
     @PostMapping
@@ -62,5 +63,20 @@ public class EstoqueController {
                 solicitanteId,
                 responsavelId
         );
+    }
+    @GetMapping("/produto/{produtoId}")
+    public List<Estoque> consultarPorProduto(@PathVariable Integer produtoId) {
+        return service.consultarPorProduto(produtoId);
+    }
+
+    @GetMapping("/almoxarifado/{almoxarifadoId}")
+    public List<Estoque> consultarPorAlmoxarifado(@PathVariable Integer almoxarifadoId) {
+        return service.consultarPorAlmoxarifado(almoxarifadoId);
+    }
+
+    @GetMapping("/produto/{produtoId}/almoxarifado/{almoxarifadoId}")
+    public Estoque consultarPorProdutoEAlmoxarifado(@PathVariable Integer produtoId,
+                                                @PathVariable Integer almoxarifadoId) {
+        return service.consultarPorProdutoEAlmoxarifado(produtoId, almoxarifadoId);
     }
 }

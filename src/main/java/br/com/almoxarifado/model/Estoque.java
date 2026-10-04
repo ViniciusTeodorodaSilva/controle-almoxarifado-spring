@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 
 
 @Entity
-@Table (name = "estoque")
+@Table(name = "estoque", uniqueConstraints = @UniqueConstraint(
+        name = "uk_estoque_produto_almoxarifado", columnNames = {"produto_id", "almoxarifado_id"}))
 public class Estoque {
 
     @Id
@@ -12,11 +13,11 @@ public class Estoque {
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "produto_id")
+    @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
     @ManyToOne
-    @JoinColumn(name = "almoxarifado_id")
+    @JoinColumn(name = "almoxarifado_id", nullable = false)
     private Almoxarifado almoxarifado;
 
     private double quantidade;

@@ -3,6 +3,7 @@ package br.com.almoxarifado.service;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import br.com.almoxarifado.exception.*;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -34,22 +35,36 @@ public class EstoqueService {
         return repository.findById(id);
     }
 
+    @Transactional
     public Estoque cadastrar(Estoque estoque) {
 
+        if (estoque == null || estoque.getProduto() == null || estoque.getProduto().getId() == null
+                || estoque.getAlmoxarifado() == null || estoque.getAlmoxarifado().getId() == null) {
+            throw new IllegalArgumentException("Produto e almoxarifado devem ser informados");
+        }
+        if (estoque.getId() != null) {
+            throw new IllegalArgumentException("Cadastro de estoque não permite informar ID; utilize entrada ou saída");
+        }
+
+        // Bloquear o produto também protege o par quando ainda não existe linha de estoque.
         Produto produto = produtoRepository
-                .findById(estoque.getProduto().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado"));
+                .buscarParaAtualizacao(estoque.getProduto().getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
 
         estoque.setProduto(produto);
 
         Almoxarifado almoxarifado = almoxarifadoRepository
                 .findById(estoque.getAlmoxarifado().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Almoxarifado não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarifado não encontrado"));
 
         estoque.setAlmoxarifado(almoxarifado);
 
-        if (estoque.getQuantidade() < 0) {
-            throw new IllegalArgumentException("Quantidade inválida");
+        if (!Double.isFinite(estoque.getQuantidade()) || estoque.getQuantidade() != 0) {
+            throw new IllegalArgumentException("Novo estoque deve iniciar zerado; utilize a operação de entrada");
+        }
+
+        if (repository.existsByProdutoIdAndAlmoxarifadoId(produto.getId(), almoxarifado.getId())) {
+            throw new ConflitoException("Estoque já cadastrado para este produto e almoxarifado");
         }
 
         return repository.save(estoque);
@@ -58,23 +73,31 @@ public class EstoqueService {
 
     @Transactional
     public Estoque entradaEstoque(Integer produtoId, Integer almoxarifadoId, double quantidade, Integer solicitanteId, Integer responsavelId) {
-        if (quantidade <= 0) {
+        if (produtoId == null || almoxarifadoId == null || solicitanteId == null || responsavelId == null) {
+            throw new IllegalArgumentException("Produto, almoxarifado, solicitante e responsável devem ser informados");
+        }
+        if (!Double.isFinite(quantidade) || quantidade <= 0) {
             throw new IllegalArgumentException("Quantidade de entrada deve ser maior que zero");
         }
 
         Estoque estoque = repository
-                .findByProdutoIdAndAlmoxarifadoId(produtoId, almoxarifadoId)
-                .orElseThrow(() -> new IllegalArgumentException("Estoque não encontrado"));
+                .buscarParaAtualizacao(produtoId, almoxarifadoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
 
         Funcionario solicitante = funcionarioRepository
                 .findById(solicitanteId)
-                .orElseThrow(() -> new IllegalArgumentException("Solicitante não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitante não encontrado"));
 
         Funcionario responsavel = funcionarioRepository
                 .findById(responsavelId)
-                .orElseThrow(() -> new IllegalArgumentException("Responsável não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Responsável não encontrado"));
 
         double saldoAnterior = estoque.getQuantidade();
+
+        if (!Double.isFinite(saldoAnterior) || saldoAnterior < 0
+                || !Double.isFinite(saldoAnterior + quantidade)) {
+            throw new IllegalArgumentException("Saldo de estoque inválido");
+        }
 
         estoque.setQuantidade(estoque.getQuantidade() + quantidade);
 
@@ -105,25 +128,28 @@ public class EstoqueService {
             Integer solicitanteId,
             Integer responsavelId) {
 
-        if (quantidade <= 0) {
+        if (produtoId == null || almoxarifadoId == null || solicitanteId == null || responsavelId == null) {
+            throw new IllegalArgumentException("Produto, almoxarifado, solicitante e responsável devem ser informados");
+        }
+        if (!Double.isFinite(quantidade) || quantidade <= 0) {
             throw new IllegalArgumentException(
                     "Quantidade de saída deve ser maior que zero"
             );
         }
 
         Estoque estoque = repository
-                .findByProdutoIdAndAlmoxarifadoId(produtoId, almoxarifadoId)
-                .orElseThrow(() -> new IllegalArgumentException("Estoque não encontrado"));
+                .buscarParaAtualizacao(produtoId, almoxarifadoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
 
         Funcionario solicitante = funcionarioRepository
                 .findById(solicitanteId)
-                .orElseThrow(() -> new IllegalArgumentException("Solicitante não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitante não encontrado"));
 
         Funcionario responsavel = funcionarioRepository
                 .findById(responsavelId)
-                .orElseThrow(() -> new IllegalArgumentException("Responsável não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Responsável não encontrado"));
 
-        if (quantidade > estoque.getQuantidade()) {
+        if (!Double.isFinite(estoque.getQuantidade()) || quantidade > estoque.getQuantidade()) {
             throw new IllegalArgumentException("Estoque insuficiente");
         }
 
@@ -150,4 +176,22 @@ public class EstoqueService {
 
     }
 
+    public List<Estoque> consultarPorProduto(Integer produtoId) {
+        if (!produtoRepository.existsById(produtoId)) {
+            throw new RecursoNaoEncontradoException("Produto não encontrado");
+        }
+        return repository.findByProdutoId(produtoId);
+    }
+
+    public List<Estoque> consultarPorAlmoxarifado(Integer almoxarifadoId) {
+        if (!almoxarifadoRepository.existsById(almoxarifadoId)) {
+            throw new RecursoNaoEncontradoException("Almoxarifado não encontrado");
+        }
+        return repository.findByAlmoxarifadoId(almoxarifadoId);
+    }
+
+    public Estoque consultarPorProdutoEAlmoxarifado(Integer produtoId, Integer almoxarifadoId) {
+        return repository.findByProdutoIdAndAlmoxarifadoId(produtoId, almoxarifadoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
+    }
 }
