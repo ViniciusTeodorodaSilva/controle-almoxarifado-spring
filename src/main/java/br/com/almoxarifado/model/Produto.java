@@ -14,7 +14,6 @@ public class Produto {
 
     private String descricao;
 
-    private double quantidade;
 
     @Column(name = "unidade_medida")
     private String unidadeMedida;
@@ -39,9 +38,6 @@ public class Produto {
         return descricao;
     }
 
-    public double getQuantidade() {
-        return quantidade;
-    }
 
     public String getUnidadeMedida() {
         return unidadeMedida;
@@ -67,9 +63,6 @@ public class Produto {
         this.descricao = descricao;
     }
 
-    public void setQuantidade(double quantidade) {
-        this.quantidade = quantidade;
-    }
 
     public void setUnidadeMedida(String unidadeMedida) {
         this.unidadeMedida = unidadeMedida;

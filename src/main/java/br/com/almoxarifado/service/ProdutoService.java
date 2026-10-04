@@ -30,10 +30,6 @@ public class ProdutoService {
             throw new IllegalArgumentException("Nome do produto inválido");
         }
 
-        if (produto.getQuantidade() < 0) {
-            throw new IllegalArgumentException("Quantidade inválida");
-        }
-
         return repository.save(produto);
     }
 }
