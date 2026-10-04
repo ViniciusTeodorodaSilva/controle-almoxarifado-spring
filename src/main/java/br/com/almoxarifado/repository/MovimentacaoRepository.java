@@ -9,4 +9,5 @@ public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Inte
     @org.springframework.data.jpa.repository.Query("select m from Movimentacao m where m.solicitacao.id = :solicitacaoId")
     java.util.List<Movimentacao> findBySolicitacaoId(@org.springframework.data.repository.query.Param("solicitacaoId") Integer solicitacaoId);
     java.util.List<Movimentacao> findByTipo(br.com.almoxarifado.model.TipoMovimentacao tipo);
+    boolean existsByProdutoId(Integer produtoId);
 }

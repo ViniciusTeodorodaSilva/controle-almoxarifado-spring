@@ -21,4 +21,5 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Integer> {
                                           @Param("almoxarifadoId") Integer almoxarifadoId);
     java.util.List<Estoque> findByProdutoId(Integer produtoId);
     java.util.List<Estoque> findByAlmoxarifadoId(Integer almoxarifadoId);
+    boolean existsByProdutoId(Integer produtoId);
 }

@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface ItemSolicitacaoRepository extends JpaRepository<ItemSolicitacao, Integer> {
     List<ItemSolicitacao> findBySolicitacaoId(Integer solicitacaoId);
+    boolean existsByProdutoId(Integer produtoId);
 }

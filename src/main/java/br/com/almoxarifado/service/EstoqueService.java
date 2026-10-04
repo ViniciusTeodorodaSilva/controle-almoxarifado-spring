@@ -84,6 +84,8 @@ public class EstoqueService {
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
 
+        ValidacaoQuantidade.validar(estoque.getProduto(), quantidade);
+
         Funcionario solicitante = funcionarioRepository
                 .findById(solicitanteId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitante não encontrado"));
@@ -140,6 +142,8 @@ public class EstoqueService {
         Estoque estoque = repository
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
+
+        ValidacaoQuantidade.validar(estoque.getProduto(), quantidade);
 
         Funcionario solicitante = funcionarioRepository
                 .findById(solicitanteId)

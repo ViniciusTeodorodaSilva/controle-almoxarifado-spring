@@ -42,9 +42,44 @@ Backend REST, base URL local padrão `http://localhost:8080`. IDs são inteiros.
 | GET | `/movimentacoes/solicitacao/{solicitacaoId}` | Histórico por solicitação | `solicitacaoId` |
 | GET | `/movimentacoes/tipo/{tipo}` | Filtrar tipo | `ENTRADA` ou `SAIDA` |
 
+## Catálogo Mestre Bloco 1
+
+Os endpoints anteriores são preservados. Novos campos de Produto: `codigo`, `especificacaoTecnica`, `ativo`, `categoriaMaterial: {"id": 1}` e `unidadeMedidaConfigurada: {"id": 1}`. Os campos textuais legados continuam disponíveis. Código omitido no POST é gerado; omitido no PUT é preservado. Ativo e referências omitidos no PUT também são preservados. Referências informadas devem existir e estar ativas para novos vínculos.
+
+| Método | Endpoint | Descrição | Parâmetros principais |
+|---|---|---|---|
+| POST | `/categorias` | Cadastrar categoria | JSON: nome obrigatório, descricao opcional, ativo (padrão true) |
+| GET | `/categorias` | Listar categorias | Query ativo opcional |
+| GET | `/categorias/{id}` | Buscar categoria | id |
+| PUT | `/categorias/{id}` | Atualizar/ativar/inativar | JSON completo; sem troca de ID |
+| POST | `/unidades-medida` | Cadastrar unidade configurável | JSON: nome, sigla, permiteFracionamento (padrão false), ativo (padrão true) |
+| GET | `/unidades-medida` | Listar unidades | Query ativo opcional |
+| GET | `/unidades-medida/{id}` | Buscar unidade | id |
+| PUT | `/unidades-medida/{id}` | Atualizar/ativar/inativar | JSON completo; sem troca de ID |
+| GET | `/produtos/busca` | Pesquisar catálogo | Query termo, categoriaId e ativo opcionais; combinação por AND |
+| GET | `/produtos/equivalentes` | Sugerir possíveis cadastros semelhantes | Query termo obrigatório com pelo menos 3 caracteres |
+| GET | `/produtos?ativo=true` | Listar somente ativos | ativo opcional; ausência preserva listagem completa |
+
+Exemplo de POST /produtos:
+
+```json
+{
+  "codigo": "MAT-001",
+  "nome": "Luva de proteção",
+  "descricao": "Proteção industrial",
+  "especificacaoTecnica": "Norma EN388",
+  "categoriaMaterial": {"id": 1},
+  "unidadeMedidaConfigurada": {"id": 1},
+  "tipoControle": "CONSUMO",
+  "ativo": true
+}
+```
+
+Nome de categoria equivalente, sigla e código duplicados retornam 409. Referência inexistente retorna 404; inativa ou sem ID retorna 400. Unidade não fracionária rejeita frações nos fluxos de quantidade. Categorias/unidades não possuem DELETE; inativação conserva histórico. A busca por termo é case-insensitive e literal; sugestões não bloqueiam criação. Consulte [catalogo-mestre.md](catalogo-mestre.md) para compatibilidade, limites e RFs.
+
 ## Contratos
 
-PUT de cadastro mantém a identidade do recurso: `id` no corpo pode ser omitido ou igual ao da URL; um ID diferente é rejeitado. Campos opcionais omitidos ficam nulos. POST com ID é rejeitado. Não há regra de unicidade de matrícula nesta versão.
+PUT de cadastro mantém a identidade do recurso: `id` no corpo pode ser omitido ou igual ao da URL; um ID diferente é rejeitado. Campos opcionais textuais omitidos ficam nulos, com as exceções de compatibilidade de Produto descritas acima. POST com ID é rejeitado. Não há regra de unicidade de matrícula nesta versão.
 
 Estoque novo inicia zerado. Para inserir saldo inicial, cadastrar o par e fazer uma entrada. Toda alteração de saldo pelas APIs gera movimentação; saldos negativos e quantidades não finitas são rejeitados. O histórico legado não é alterado automaticamente.
 
@@ -85,4 +120,4 @@ Stack traces e mensagens SQL não são enviados ao cliente.
 6. `PUT /solicitacoes/1/aprovar?responsavelId=1`.
 7. Consultar saldo e `GET /solicitacoes/1/movimentacoes`.
 
-Antes de usar esta versão no MySQL, revisar e aplicar manualmente o schema preparado em `docs/sql`, particularmente a coluna `movimentacao.solicitacao_id`. A aplicação mantém `ddl-auto=none` e não aplica migrations automaticamente.
+Antes de usar esta versão no MySQL, revisar e aplicar manualmente o schema preparado em `docs/sql`, incluindo a coluna `movimentacao.solicitacao_id` e o script `catalogo-mestre-manual.sql`. A aplicação mantém `ddl-auto=none` e não aplica migrations automaticamente.

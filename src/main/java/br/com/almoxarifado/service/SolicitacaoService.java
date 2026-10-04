@@ -88,6 +88,8 @@ public class SolicitacaoService {
             throw new IllegalArgumentException("Quantidade deve ser maior que zero");
         }
 
+        ValidacaoQuantidade.validar(produto, quantidade);
+
         ItemSolicitacao item = new ItemSolicitacao();
 
         item.setSolicitacao(solicitacao);
@@ -121,6 +123,7 @@ public class SolicitacaoService {
                     || !Double.isFinite(item.getQuantidade()) || item.getQuantidade() <= 0) {
                 throw new IllegalArgumentException("Item da solicitação inválido");
             }
+            ValidacaoQuantidade.validar(item.getProduto(), item.getQuantidade());
             double total = quantidades.getOrDefault(item.getProduto().getId(), 0.0) + item.getQuantidade();
             if (!Double.isFinite(total)) {
                 throw new IllegalArgumentException("Quantidade total inválida");

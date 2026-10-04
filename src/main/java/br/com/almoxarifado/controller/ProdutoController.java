@@ -18,8 +18,8 @@ public class ProdutoController {
     }
 
     @GetMapping
-    public List<Produto> listar() {
-        return service.listar();
+    public List<Produto> listar(@RequestParam(required = false) Boolean ativo) {
+        return service.listar(ativo);
     }
 
     @GetMapping("/{id}")
@@ -36,4 +36,11 @@ public class ProdutoController {
     public Produto atualizar(@PathVariable Integer id, @RequestBody Produto dados) {
         return service.atualizar(id, dados);
     }
+    @GetMapping("/busca")
+    public List<Produto> buscar(@RequestParam(required = false) String termo,
+            @RequestParam(required = false) Integer categoriaId, @RequestParam(required = false) Boolean ativo) {
+        return service.buscar(termo, categoriaId, ativo);
+    }
+    @GetMapping("/equivalentes")
+    public List<Produto> equivalentes(@RequestParam String termo) { return service.equivalentes(termo); }
 }
