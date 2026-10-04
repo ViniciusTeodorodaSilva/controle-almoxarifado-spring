@@ -11,6 +11,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.concurrent.*;
+import java.util.UUID;
+import br.com.almoxarifado.dto.AtendimentoInput;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -20,6 +22,9 @@ import static org.mockito.Mockito.doThrow;
 @ActiveProfiles("test")
 class FluxoSolicitacaoTests {
     @Autowired SolicitacaoService solicitacaoService;
+    @Autowired AtendimentoSolicitacaoService atendimentosService;
+    @Autowired AtendimentoSolicitacaoRepository atendimentos;
+    @Autowired ItemAtendimentoSolicitacaoRepository itensAtendidos;
     @Autowired EstoqueService estoqueService;
     @Autowired MovimentacaoService movimentacaoService;
     @MockitoSpyBean SolicitacaoRepository solicitacoes;
@@ -37,6 +42,8 @@ class FluxoSolicitacaoTests {
     @BeforeEach
     void preparar() {
         movimentacoes.deleteAll();
+        itensAtendidos.deleteAll();
+        atendimentos.deleteAll();
         itens.deleteAll();
         solicitacoes.deleteAll();
         estoques.deleteAll();
@@ -56,19 +63,14 @@ class FluxoSolicitacaoTests {
     }
 
     @Test
-    void aprovaSolicitacaoValidaERegistraSaida() {
+    void aprovaSolicitacaoValidaSemSaidaDeEstoque() {
         Solicitacao solicitacao = solicitar(produto, 4);
         Solicitacao aprovada = solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
         assertEquals(StatusSolicitacao.APROVADA, aprovada.getStatus());
-        assertEquals(StatusSolicitacao.APROVADA, status(solicitacao));
-        assertEquals(6, saldo(produto));
-        assertEquals(1, movimentacoes.count());
-        Movimentacao movimento = movimentacoes.findAll().get(0);
-        assertEquals(TipoMovimentacao.SAIDA, movimento.getTipo());
-        assertEquals(4, movimento.getQuantidade());
-        assertEquals(10, movimento.getSaldoAnterior());
-        assertEquals(6, movimento.getSaldoPosterior());
-        assertEquals(funcionario.getId(), movimento.getSolicitante().getId());
+        assertEquals(funcionario.getId(), aprovada.getResponsavelAprovacao().getId());
+        assertNotNull(aprovada.getDataAprovacao());
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -79,10 +81,11 @@ class FluxoSolicitacaoTests {
     }
 
     @Test
-    void naoAprovaSemEstoqueSuficiente() {
+    void autorizaMesmoSemEstoqueSuficiente() {
         Solicitacao solicitacao = solicitar(produto, 11);
-        assertThrows(IllegalArgumentException.class, () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()));
-        assertIntacto(solicitacao);
+        assertEquals(StatusSolicitacao.APROVADA, solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()).getStatus());
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -90,8 +93,8 @@ class FluxoSolicitacaoTests {
         Solicitacao solicitacao = solicitar(produto, 4);
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
         assertThrows(IllegalArgumentException.class, () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()));
-        assertEquals(6, saldo(produto));
-        assertEquals(1, movimentacoes.count());
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -109,7 +112,7 @@ class FluxoSolicitacaoTests {
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
         assertThrows(IllegalArgumentException.class, () -> solicitacaoService.rejeitar(solicitacao.getId()));
         assertEquals(StatusSolicitacao.APROVADA, status(solicitacao));
-        assertEquals(6, saldo(produto));
+        assertEquals(10, saldo(produto));
     }
 
     @Test
@@ -149,6 +152,7 @@ class FluxoSolicitacaoTests {
     void permiteConsumirExatamenteOSaldo() {
         Solicitacao solicitacao = solicitar(produto, 10);
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
+        atenderTudo(solicitacao);
         assertEquals(0, saldo(produto));
     }
 
@@ -156,8 +160,11 @@ class FluxoSolicitacaoTests {
     void verificaSomaDosItensDoMesmoProduto() {
         Solicitacao solicitacao = solicitar(produto, 6);
         solicitacaoService.adicionarItem(solicitacao.getId(), produto.getId(), 5);
-        assertThrows(IllegalArgumentException.class, () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()));
-        assertIntacto(solicitacao);
+        solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
+        assertThrows(IllegalArgumentException.class, () -> atenderTudo(solicitacao));
+        assertEquals(StatusSolicitacao.EM_SEPARACAO, status(solicitacao));
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -165,9 +172,10 @@ class FluxoSolicitacaoTests {
         Solicitacao solicitacao = solicitar(produto, 2);
         solicitacaoService.adicionarItem(solicitacao.getId(), produto.getId(), 3);
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
+        atenderTudo(solicitacao);
         assertEquals(5, saldo(produto));
-        assertEquals(1, movimentacoes.count());
-        assertEquals(5, movimentacoes.findAll().get(0).getQuantidade());
+        assertEquals(2, movimentacoes.count());
+        assertEquals(5, movimentacoes.findAll().stream().mapToDouble(Movimentacao::getQuantidade).sum());
     }
 
     @Test
@@ -176,8 +184,11 @@ class FluxoSolicitacaoTests {
         prepararSaldo(outro, 1);
         Solicitacao solicitacao = solicitar(produto, 4);
         solicitacaoService.adicionarItem(solicitacao.getId(), outro.getId(), 2);
-        assertThrows(IllegalArgumentException.class, () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()));
-        assertIntacto(solicitacao);
+        solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
+        assertThrows(IllegalArgumentException.class, () -> atenderTudo(solicitacao));
+        assertEquals(StatusSolicitacao.EM_SEPARACAO, status(solicitacao));
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
         assertEquals(1, saldo(outro));
     }
 
@@ -196,11 +207,12 @@ class FluxoSolicitacaoTests {
     }
 
     @Test
-    void naoAprovaProdutoSemEstoque() {
+    void autorizaProdutoSemEstoqueCadastrado() {
         Produto outro = novoProduto("Sem estoque");
         Solicitacao solicitacao = solicitar(outro, 1);
-        assertThrows(IllegalArgumentException.class, () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()));
-        assertIntacto(solicitacao);
+        assertEquals(StatusSolicitacao.APROVADA, solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()).getStatus());
+        assertFalse(estoques.existsByProdutoIdAndAlmoxarifadoId(outro.getId(), almoxarifado.getId()));
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -267,8 +279,8 @@ class FluxoSolicitacaoTests {
         assertEquals(1, executarConcorrentes(
                 () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId()),
                 () -> solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId())));
-        assertEquals(6, saldo(produto));
-        assertEquals(1, movimentacoes.count());
+        assertEquals(10, saldo(produto));
+        assertEquals(0, movimentacoes.count());
         assertEquals(StatusSolicitacao.APROVADA, status(solicitacao));
     }
 
@@ -276,12 +288,16 @@ class FluxoSolicitacaoTests {
     void solicitacoesConcorrentesNaoConsomemMaisQueOSaldo() throws Exception {
         Solicitacao primeira = solicitar(produto, 6);
         Solicitacao segunda = solicitar(produto, 6);
+        solicitacaoService.aprovar(primeira.getId(), funcionario.getId());
+        solicitacaoService.aprovar(segunda.getId(), funcionario.getId());
+        atendimentosService.iniciarSeparacao(primeira.getId(), funcionario.getId());
+        atendimentosService.iniciarSeparacao(segunda.getId(), funcionario.getId());
         assertEquals(1, executarConcorrentes(
-                () -> solicitacaoService.aprovar(primeira.getId(), funcionario.getId()),
-                () -> solicitacaoService.aprovar(segunda.getId(), funcionario.getId())));
+                () -> atendimentosService.atender(primeira.getId(), atendimentoTotal(primeira), UUID.randomUUID().toString()),
+                () -> atendimentosService.atender(segunda.getId(), atendimentoTotal(segunda), UUID.randomUUID().toString())));
         assertEquals(4, saldo(produto));
         assertEquals(1, movimentacoes.count());
-        assertEquals(1, solicitacoes.findAll().stream().filter(s -> s.getStatus() == StatusSolicitacao.APROVADA).count());
+        assertEquals(1, solicitacoes.findAll().stream().filter(s -> s.getStatus() == StatusSolicitacao.ATENDIDA).count());
     }
 
     @Test
@@ -308,22 +324,16 @@ class FluxoSolicitacaoTests {
     }
 
     @Test
-    void aprovacaoRegistraResponsavelExplicitoEmTodasAsMovimentacoes() {
+    void aprovacaoRegistraResponsavelSemCriarMovimentacao() {
         Funcionario aprovador = new Funcionario();
         aprovador.setNome("Aprovador");
         aprovador.setMatricula("BES-002");
         aprovador = funcionarios.save(aprovador);
-        Produto outro = novoProduto("Máscara");
-        prepararSaldo(outro, 5);
         Solicitacao solicitacao = solicitar(produto, 4);
-        solicitacaoService.adicionarItem(solicitacao.getId(), outro.getId(), 2);
-        solicitacaoService.aprovar(solicitacao.getId(), aprovador.getId());
-        assertEquals(2, movimentacoes.count());
-        Integer responsavelId = aprovador.getId();
-        movimentacoes.findAll().forEach(m -> {
-            assertEquals(responsavelId, m.getResponsavel().getId());
-            assertEquals(solicitacao.getId(), m.getSolicitacaoId());
-        });
+        Solicitacao resultado = solicitacaoService.aprovar(solicitacao.getId(), aprovador.getId());
+        assertEquals(aprovador.getId(), resultado.getResponsavelAprovacao().getId());
+        assertNotNull(resultado.getDataAprovacao());
+        assertEquals(0, movimentacoes.count());
     }
 
     @Test
@@ -347,6 +357,8 @@ class FluxoSolicitacaoTests {
         Solicitacao segunda = solicitar(produto, 3);
         solicitacaoService.aprovar(primeira.getId(), funcionario.getId());
         solicitacaoService.aprovar(segunda.getId(), funcionario.getId());
+        atenderTudo(primeira);
+        atenderTudo(segunda);
         assertEquals(1, solicitacaoService.consultarMovimentacoes(primeira.getId()).size());
         assertEquals(2, solicitacaoService.consultarMovimentacoes(primeira.getId()).get(0).getQuantidade());
         assertEquals(1, movimentacaoService.consultarPorSolicitacao(segunda.getId()).size());
@@ -403,6 +415,7 @@ class FluxoSolicitacaoTests {
     void filtrosDeMovimentacaoRespeitamProdutoAlmoxarifadoETipo() {
         Solicitacao solicitacao = solicitar(produto, 2);
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
+        atenderTudo(solicitacao);
         estoqueService.entradaEstoque(produto.getId(), almoxarifado.getId(), 1,
                 funcionario.getId(), funcionario.getId());
         assertEquals(2, movimentacaoService.consultarPorProduto(produto.getId()).size());
@@ -445,6 +458,16 @@ class FluxoSolicitacaoTests {
         assertEquals(1, solicitacaoService.consultarPorStatus(StatusSolicitacao.REJEITADA).size());
         assertEquals(2, solicitacaoService.consultarPorFuncionario(funcionario.getId()).size());
         assertEquals(rejeitada.getId(), solicitacaoService.consultarPorFuncionario(outro.getId()).get(0).getId());
+    }
+
+    private AtendimentoInput atendimentoTotal(Solicitacao s) {
+        return new AtendimentoInput(funcionario.getId(), itens.findBySolicitacaoId(s.getId()).stream()
+                .map(i -> new AtendimentoInput.Item(i.getId(), i.getQuantidade())).toList());
+    }
+
+    private void atenderTudo(Solicitacao s) {
+        atendimentosService.iniciarSeparacao(s.getId(), funcionario.getId());
+        atendimentosService.atender(s.getId(), atendimentoTotal(s), UUID.randomUUID().toString());
     }
 
     private boolean executar(CountDownLatch iniciar, Runnable acao) throws InterruptedException {

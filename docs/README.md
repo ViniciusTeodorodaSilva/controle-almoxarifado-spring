@@ -41,7 +41,8 @@ Logo: utilizar os assets oficiais B&S quando disponíveis; não criar identidade
 - [Estabilização do backend](estabilizacao-backend.md).
 - [Catálogo Mestre](catalogo-mestre.md).
 - [Estoque inteligente e transferências](estoque-inteligente.md).
+- [Atendimento, separação, faltas e necessidade de compra — Bloco 3](atendimento-solicitacoes.md).
 - [Frontend](../frontend/README.md).
 - [Orientações para futuras sessões Codex](../AGENTS.md).
 
-Este registro modifica apenas documentação. Não aplica migrations, altera funcionalidades ou antecipa módulos do roadmap.
+O registro da fonte oficial foi documental. A implementação incremental do Bloco 3 está descrita em [atendimento-solicitacoes.md](atendimento-solicitacoes.md), incluindo mudança deliberada da aprovação, compatibilidade legada, cobertura real dos RFs e scripts manuais não executados.

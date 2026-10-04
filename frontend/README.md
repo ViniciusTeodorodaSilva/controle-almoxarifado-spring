@@ -144,3 +144,16 @@ Testes desta rodada ampliam a suíte existente: pesquisas e combinações, quant
 - Testes: 32 Node (19 anteriores + 13 novos), 20 Playwright (10 anteriores + 10 novos), além de 135 backend (91 anteriores + 44 novos). Usar H2 isolado pelo script existente; **não iniciar servidor de produção/MySQL para E2E**. Novos fluxos/capturas cobrem 1440/768/390px.
 
 Contratos e limitações: [API](../docs/api.md) e [documentação do Bloco 2](../docs/estoque-inteligente.md). Schema novo é manual e não foi aplicado a banco externo. A fonte funcional oficial atual é a [Documentação Mestre BES v1.4](../docs/Documentacao_Mestre_Plataforma_BES_v1_4.docx), RF001–RF218; planejamento e cobertura incremental estão em [docs/README.md](../docs/README.md). Prontidão de revisão funcional não significa prontidão para publicar sem autorização/idempotência/schema homologado.
+
+
+## Bloco 3 — atendimento e documentos operacionais
+
+Aprovação agora autoriza e mantém saldo, sem criar saída. Separação registra responsável sem reservar. Detalhe operacional via `/operacao` mostra solicitado/atendido/pendente, saldo e falta, histórico e ações conforme status; suporta deep link `/solicitacoes?solicitacaoId=...`. Lista/pesquisa preserva contratos anteriores e inclui novos status. Legado inequívoco é reconhecido; ambíguo bloqueia novas entregas, com aviso e quantidades a conferir.
+
+Atendimento sugere disponibilidade sem entregar automaticamente; operador ajusta, revisa e confirma. Unidades, pendente e saldo validados localmente e pelo backend. Payload/chave Idempotency-Key permanecem durante o envio; sem submits simultâneos. Resposta incerta oferece “Conferir resultado” com a mesma chave/payload, bloqueando fechar modal e edição enquanto não conferido; reload/navegação avisa, mas não recupera rascunho entre sessões. Registros persistidos continuam no histórico. Recarregou? Consultar histórico antes de iniciar nova operação.
+
+`/necessidades-compra`: falta confirmada com origem, produto/unidade, almoxarifado, responsável, quantidade/instante/status, busca e filtros reais. Não efetua pedido nem altera estoque. Reposição não apaga a fotografia ABERTA. Dashboard acrescenta somente contagens compactas de solicitações parcialmente atendidas e necessidades abertas, sem redesenho.
+
+`/solicitacoes/{id}/lista-separacao`: primeiro documento operacional, A4/print, template reutilizável `OperationalDocument`, campos de conferência e dados reais. `window.print()` permite impressão/salvar PDF pelo navegador; sem exportador PDF dedicado, comprovante ou QR. Rota e vínculo ao registro preparam acesso futuro, sem marcar RF212 concluído. Os PNGs oficiais ainda ausentes: fallback do documento **B&S Engenharia / Plataforma BES**, com `bes-logo-full.png` aceito no próximo build sem distorção. Sidebar preservada.
+
+Operação a 1440/768/390px, tabela rola internamente; não impõe papel. Testes de atendimento/necessidade, resposta perdida, double click, saldo alterado, histórico e impressão via mídia print/PDF local. **Usar vite preview + H2 isolado 8081**, nunca MySQL; manter VITE_API_URL para proxy apontando ao H2, com base de build `/api` para roteamento local dos testes. Artefatos de screenshot/trace/PDF em test-results são ignorados. Contratos e RFs: [API](../docs/api.md) e [Bloco 3](../docs/atendimento-solicitacoes.md).

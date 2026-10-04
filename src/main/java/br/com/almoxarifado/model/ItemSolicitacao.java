@@ -21,6 +21,13 @@ public class ItemSolicitacao {
     private Produto produto;
 
     private double quantidade;
+    @Column(name="quantidade_atendida") private Double quantidadeAtendida;
+    public Double getQuantidadeAtendida() { return quantidadeAtendida; }
+    public void setQuantidadeAtendida(Double value) { quantidadeAtendida=value; }
+    public double getQuantidadeSolicitada() { return quantidade; }
+    // Null in pre-Bloco-3 rows means legacy fulfillment must be checked against linked movements.
+    public Double getQuantidadePendente() { return quantidadeAtendida == null ? null : Math.max(0, java.math.BigDecimal.valueOf(quantidade).subtract(java.math.BigDecimal.valueOf(quantidadeAtendida)).doubleValue()); }
+
 
     public Integer getId() {
         return id;

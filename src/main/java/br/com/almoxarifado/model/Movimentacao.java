@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "movimentacao")
 public class Movimentacao {
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="atendimento_id") @JsonIgnore
+    private AtendimentoSolicitacao atendimento;
+    public AtendimentoSolicitacao getAtendimento() { return atendimento; }
+    public void setAtendimento(AtendimentoSolicitacao value) { atendimento=value; }
+    public Integer getAtendimentoId() { return atendimento == null ? null : atendimento.getId(); }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transferencia_id", foreignKey = @ForeignKey(name = "fk_movimentacao_transferencia"))
     @JsonIgnore private TransferenciaEstoque transferencia;

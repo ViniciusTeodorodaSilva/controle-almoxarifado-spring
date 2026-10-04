@@ -1,7 +1,7 @@
 export class ApiError extends Error {
   constructor(message, status = 0) { super(message); this.status = status }
 }
-export async function request(path, { method = 'GET', body, query, signal } = {}) {
+export async function request(path, { method = 'GET', body, query, signal, headers = {} } = {}) {
   const params = new URLSearchParams()
   Object.entries(query || {}).forEach(([key, value]) => { if (value !== '' && value != null) params.set(key, value) })
   // Vite proxy in development; production can use a same-origin /api reverse proxy.
@@ -9,7 +9,7 @@ export async function request(path, { method = 'GET', body, query, signal } = {}
   let response
   try {
     response = await fetch(`${base}${path}${params.size ? '?' + params : ''}`, {
-      method, signal, headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+      method, signal, headers: { ...headers, Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {})
     })
   } catch (error) {
@@ -27,6 +27,12 @@ export async function request(path, { method = 'GET', body, query, signal } = {}
   return data
 }
 export const api = {
+  requestOperation: (id, signal) => request(`/solicitacoes/${id}/operacao`, { signal }),
+  separate: (id, responsavelId) => request(`/solicitacoes/${id}/iniciar-separacao`, { method: 'PUT', query: { responsavelId } }),
+  fulfill: (id, body, key) => request(`/solicitacoes/${id}/atendimentos`, { method: 'POST', body, headers: { 'Idempotency-Key': key } }),
+  fulfillments: (id, signal) => request(`/solicitacoes/${id}/atendimentos`, { signal }),
+  purchaseNeeds: (query, signal) => request('/necessidades-compra', { query, signal }),
+  createPurchaseNeed: (body, key) => request('/necessidades-compra', { method: 'POST', body, headers: { 'Idempotency-Key': key } }),
   stockLimits: (id, body) => request(`/estoques/${id}/limites`, { method: 'PUT', body }),
   stockAlerts: (query, signal) => request('/estoques/alertas', { query, signal }),
   restock: (query, signal) => request('/estoques/reposicoes', { query, signal }),

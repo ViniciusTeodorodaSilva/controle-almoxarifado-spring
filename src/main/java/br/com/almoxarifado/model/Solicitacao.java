@@ -8,6 +8,19 @@ import java.util.List;
 @Entity
 @Table(name = "solicitacao")
 public class Solicitacao {
+    @ManyToOne @JoinColumn(name="responsavel_aprovacao_id") private Funcionario responsavelAprovacao;
+    public Funcionario getResponsavelAprovacao() { return responsavelAprovacao; }
+    public void setResponsavelAprovacao(Funcionario value) { responsavelAprovacao=value; }
+    @Column(name="data_aprovacao") private LocalDateTime dataAprovacao;
+    public LocalDateTime getDataAprovacao() { return dataAprovacao; }
+    public void setDataAprovacao(LocalDateTime value) { dataAprovacao=value; }
+    @ManyToOne @JoinColumn(name="responsavel_separacao_id") private Funcionario responsavelSeparacao;
+    public Funcionario getResponsavelSeparacao() { return responsavelSeparacao; }
+    public void setResponsavelSeparacao(Funcionario value) { responsavelSeparacao=value; }
+    @Column(name="data_separacao") private LocalDateTime dataSeparacao;
+    public LocalDateTime getDataSeparacao() { return dataSeparacao; }
+    public void setDataSeparacao(LocalDateTime value) { dataSeparacao=value; }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

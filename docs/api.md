@@ -32,10 +32,10 @@ Backend REST, base URL local padrão `http://localhost:8080`. IDs são inteiros.
 | GET | `/solicitacoes` | Listar solicitações com itens | — |
 | GET | `/solicitacoes/{id}` | Buscar solicitação com itens | `id` |
 | POST | `/solicitacoes/{solicitacaoId}/itens` | Adicionar item à PENDENTE | `solicitacaoId`; query `produtoId`, `quantidade` |
-| PUT | `/solicitacoes/{id}/aprovar` | Aprovar e debitar atomicamente | `id`; query `responsavelId` obrigatório |
+| PUT | `/solicitacoes/{id}/aprovar` | Autorizar sem saída de estoque | `id`; query `responsavelId` obrigatório |
 | PUT | `/solicitacoes/{id}/rejeitar` | Rejeitar sem alterar saldo | `id` |
-| GET | `/solicitacoes/{id}/movimentacoes` | Histórico originado pela aprovação | `id` |
-| GET | `/solicitacoes/status/{status}` | Filtrar status | `PENDENTE`, `APROVADA` ou `REJEITADA` |
+| GET | `/solicitacoes/{id}/movimentacoes` | Histórico de saídas confirmadas e legado | `id` |
+| GET | `/solicitacoes/status/{status}` | Filtrar status | `PENDENTE`, `APROVADA`, `EM_SEPARACAO`, `PARCIALMENTE_ATENDIDA`, `ATENDIDA`, `REJEITADA` |
 | GET | `/solicitacoes/funcionario/{funcionarioId}` | Filtrar solicitante | `funcionarioId` |
 | GET | `/movimentacoes` | Listar histórico | — |
 | GET | `/movimentacoes/{id}` | Buscar movimentação | `id` |
@@ -85,7 +85,7 @@ PUT de cadastro mantém a identidade do recurso: `id` no corpo pode ser omitido 
 
 Estoque novo inicia zerado. Para inserir saldo inicial, cadastrar o par e fazer uma entrada. Toda alteração de saldo pelas APIs gera movimentação; saldos negativos e quantidades não finitas são rejeitados. O histórico legado não é alterado automaticamente.
 
-Aprovação exige solicitação PENDENTE, itens positivos, saldo suficiente e responsável existente. Quantidades repetidas de um produto são somadas e geram uma movimentação por produto. Saldo, movimentos e status são persistidos atomicamente. O responsável é informado pelo cliente, sem autenticação provisoriamente. Saídas manuais podem ocorrer independentemente de solicitações; aprovação exige disponibilidade no momento em que é executada e não reserva saldo.
+Aprovação exige PENDENTE, itens válidos e responsável existente, mas não exige saldo disponível nem cria SAIDA. Registra responsável/data e autoriza. A saída ocorre somente no atendimento confirmado, após iniciar separação, com quantidades explícitas por item. Produtos repetidos compartilham saldo; um movimento é criado por item entregue, vinculado à solicitação e atendimento. Toda a operação é atômica. O responsável é informado pelo cliente; autenticação permanece futura. Separação não reserva saldo. **Mudança deliberada do Bloco 3:** clientes antigos que dependiam do débito na aprovação precisam adotar o novo POST. Legados com saída vinculada são reconhecidos sem repetir débito, conforme [estratégia de compatibilidade](atendimento-solicitacoes.md).
 
 Movimentação expõe `solicitacaoId`, que é nulo nas operações manuais. O objeto completo `solicitacao` não é serializado no histórico para evitar recursão. As entidades restantes continuam sendo o contrato de resposta.
 
@@ -119,8 +119,10 @@ Stack traces e mensagens SQL não são enviados ao cliente.
 3. `PUT /estoques/entrada?produtoId=1&almoxarifadoId=1&quantidade=10&solicitanteId=1&responsavelId=1`.
 4. `POST /solicitacoes?solicitanteId=1&almoxarifadoId=1`.
 5. `POST /solicitacoes/1/itens?produtoId=1&quantidade=2`.
-6. `PUT /solicitacoes/1/aprovar?responsavelId=1`.
-7. Consultar saldo e `GET /solicitacoes/1/movimentacoes`.
+6. `PUT /solicitacoes/1/aprovar?responsavelId=1` (apenas autoriza).
+7. `PUT /solicitacoes/1/iniciar-separacao?responsavelId=1`.
+8. `POST /solicitacoes/1/atendimentos` com Idempotency-Key e quantidades confirmadas (ver contrato abaixo).
+9. Consultar saldo e `GET /solicitacoes/1/movimentacoes`.
 
 Antes de usar esta versão no MySQL, revisar e aplicar manualmente o schema preparado em `docs/sql`, incluindo a coluna `movimentacao.solicitacao_id` e o script `catalogo-mestre-manual.sql`. A aplicação mantém `ddl-auto=none` e não aplica migrations automaticamente.
 
@@ -174,3 +176,37 @@ Histórico específico retorna `id`, `produto:{id,codigo,nome,unidadeMedida}`, `
 Erros: 400 para regras inválidas; 404 para referência/estoque de origem inexistentes; 409 para integridade/lock; 500 genérico para falha interna. O POST executa imediatamente, não aceita ID/status/saldo escolhidos pelo cliente e não possui chave de idempotência. Em resposta perdida, consultar listagem/histórico antes de repetir; frontend bloqueia reenvio incerto.
 
 Schema é manual: consultar [estoque-inteligente.md](estoque-inteligente.md). Scripts MySQL e PostgreSQL foram preparados, **não executados**. Produção segue `ddl-auto=none`; endpoints novos exigem aplicação revisada do schema antes de deployment.
+
+
+## Bloco 3 — separação, atendimento e necessidade
+
+| Método | Endpoint | Contrato |
+|---|---|---|
+| GET | `/solicitacoes/{id}/operacao` | Snapshot seguro com status efetivo/registrado, metadados, itens/quantidades/saldo/falta e aviso legado |
+| PUT | `/solicitacoes/{id}/iniciar-separacao` | Query `responsavelId`; somente APROVADA, sem saída |
+| POST | `/solicitacoes/{id}/atendimentos` | Header `Idempotency-Key`; JSON abaixo; confirma saída atômica |
+| GET | `/solicitacoes/{id}/atendimentos` | Histórico de atendimentos confirmados, itens, responsável e instante |
+| GET | `/solicitacoes/{id}/faltas` | Itens com pendente positivo, inclusive falta atual zero; quantitativos/saldo/necessidade |
+| POST | `/necessidades-compra` | Header `Idempotency-Key`; JSON `{ "itemSolicitacaoId": 10, "responsavelId": 123 }`; falta calculada no servidor |
+| GET | `/necessidades-compra` | Filtros AND opcionais `status`, `produtoId`, `almoxarifadoId`, `solicitacaoId` |
+| GET | `/necessidades-compra/{id}` | Contexto, quantidade registrada, status, instante, motivo e responsável |
+
+```json
+{
+  "responsavelId": 123,
+  "itens": [
+    { "itemSolicitacaoId": 10, "quantidade": 7 },
+    { "itemSolicitacaoId": 11, "quantidade": 2 }
+  ]
+}
+```
+
+Todos os novos contratos retornam HTTP 200 em sucesso. 400: payload/quantidade/unidade inválidos, falta inexistente ou saldo insuficiente; 404: recurso inexistente; 409: transição inválida, inconsistência legada, colisão de idempotência/constraint/lock. Falha de infraestrutura 500 usa resposta genérica, sem stack trace. Ausência do header obrigatório é 400. Header ASCII 8–100, caracteres alfanuméricos e `. _ : -`. Mesma chave/payload devolve original; conteúdo diferente é 409; ordem dos itens não altera assinatura. Constraint e transação complementam a proteção. Chaves dos POSTs são persistidas, não retornadas ao usuário em DTO.
+
+`GET /operacao` retorna `status`, `statusRegistrado`, `compatibilidadeLegada` (ATUAL, RECONHECIDA, INCONSISTENTE), `aviso`, solicitante/almoxarifado, responsáveis/datas de aprovação/separação e `itens`. Cada item tem `quantidadeSolicitada`, `quantidadeAtendida`, `quantidadePendente`, `saldoAtual`, `saldoDisponivel`, `estoqueCadastrado`, `quantidadeFaltante`, `necessidadeCompraId` e produto/unidade mínimos. `saldoDisponivel` aloca o saldo entre itens repetidos, sem reserva. Em legado ambíguo as quantidades derivadas são nulas, nunca números inventados. `/faltas` vazio não prova consistência do legado: consultar `/operacao` antes de agir. GETs antigos preservam status registrado e contrato `quantidade`; leitura operacional deve usar o snapshot.
+
+Atendimento aceita EM_SEPARACAO/PARCIALMENTE_ATENDIDA; produto ativo, itens pertencentes à solicitação, quantidade positiva finita e respeitando unidade/pendente/saldo. Zero deve ser omitido do payload, não enviado. História de atendimento tem `id`, `solicitacaoId`, `responsavel`, `dataHora`, itens com `id`, `itemSolicitacaoId`, `produto`, `quantidade`. Movimentos adicionam `atendimentoId` nullable ao vínculo existente; movimentos legados permanecem sem esse vínculo.
+
+Necessidade retorna `id`, `itemSolicitacaoId`, `solicitacaoId`, `produto`, `almoxarifado`, `quantidade`, `status`, `dataHora`, `motivo`, `responsavel`. Estados ABERTA/ATENDIDA/CANCELADA, sem endpoint de alteração/exclusão nesta etapa. Unique por item também deduplica ações com outra chave, preservando fotografia já registrada. Reposição não apaga nem encerra automaticamente a necessidade.
+
+Documento frontend `/solicitacoes/{id}/lista-separacao` é HTML A4 imprimível, sem endpoint PDF. QR, comprovantes e autenticação ainda não entregues. Detalhes, limites, scripts e RFs: [Bloco 3](atendimento-solicitacoes.md).

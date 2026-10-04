@@ -81,6 +81,9 @@ public class EstoqueService {
             throw new IllegalArgumentException("Quantidade de entrada deve ser maior que zero");
         }
 
+        // Produto antes do estoque, como atendimento/transferência: evita ordem inversa nos FKs.
+        produtoRepository.buscarParaAtualizacao(produtoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
         Estoque estoque = repository
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
@@ -140,6 +143,9 @@ public class EstoqueService {
             );
         }
 
+        // Produto antes do estoque, como atendimento/transferência: evita ordem inversa nos FKs.
+        produtoRepository.buscarParaAtualizacao(produtoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
         Estoque estoque = repository
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));

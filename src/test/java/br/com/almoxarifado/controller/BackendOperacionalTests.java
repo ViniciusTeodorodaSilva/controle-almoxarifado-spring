@@ -178,16 +178,13 @@ class BackendOperacionalTests {
     }
 
     @Test
-    void aprovaViaApiERetornaMovimentacaoRastreavelSemRecursao() throws Exception {
+    void aprovaViaApiSemGerarMovimentacao() throws Exception {
         Solicitacao solicitacao = prepararSolicitacao();
         mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).param("responsavelId", funcionario.getId().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APROVADA"))
                 .andExpect(jsonPath("$.itens[0].quantidade").value(2));
         mvc.perform(get("/solicitacoes/{id}/movimentacoes", solicitacao.getId()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].solicitacaoId").value(solicitacao.getId()))
-                .andExpect(jsonPath("$[0].responsavel.id").value(funcionario.getId()))
-                .andExpect(jsonPath("$[0].solicitacao").doesNotExist());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -198,7 +195,7 @@ class BackendOperacionalTests {
                 .andExpect(status().isConflict());
         mvc.perform(post("/solicitacoes/{id}/itens", solicitacao.getId()).param("produtoId", produto.getId().toString()).param("quantidade", "1"))
                 .andExpect(status().isConflict());
-        assertEquals(8, estoques.findAll().get(0).getQuantidade());
+        assertEquals(10, estoques.findAll().get(0).getQuantidade());
     }
 
     @Test
@@ -253,15 +250,15 @@ class BackendOperacionalTests {
         mvc.perform(get("/solicitacoes/funcionario/{id}", funcionario.getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].itens.length()").value(1));
         mvc.perform(get("/movimentacoes/produto/{id}", produto.getId()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
-        mvc.perform(get("/movimentacoes/almoxarifado/{id}", almoxarifado.getId()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
-        mvc.perform(get("/movimentacoes/solicitacao/{id}", solicitacao.getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/movimentacoes/almoxarifado/{id}", almoxarifado.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/movimentacoes/solicitacao/{id}", solicitacao.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
         mvc.perform(get("/movimentacoes/tipo/ENTRADA"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/movimentacoes/tipo/SAIDA"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
         mvc.perform(get("/movimentacoes/{id}", movimentacoes.findAll().get(0).getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").isNumber());
     }

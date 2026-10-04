@@ -8,7 +8,7 @@ export function quantityError(product, value) {
 const text = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
 const matches = (values, term) => values.some(value => text(value).includes(text(term)))
 export function filterRequests(rows, term) {
-  return rows.filter(row => matches([row.id, '#' + row.id, row.solicitante?.nome, row.almoxarifado?.nome,
+  return rows.filter(row => matches([row.id, '#' + row.id, row.status, row.status?.replaceAll('_', ' '), row.solicitante?.nome, row.almoxarifado?.nome,
     ...(row.itens || []).flatMap(item => [item.produto?.codigo, item.produto?.nome, item.produto?.descricao])], term))
 }
 export function filterStocks(rows, { term = '', product = '', warehouse = '' }) {

@@ -95,6 +95,7 @@ public class SolicitacaoService {
         item.setSolicitacao(solicitacao);
         item.setProduto(produto);
         item.setQuantidade(quantidade);
+        item.setQuantidadeAtendida(0.0);
 
         return itemSolicitacaoRepository.save(item);
 
@@ -116,7 +117,7 @@ public class SolicitacaoService {
             throw new IllegalArgumentException("Solicitação sem almoxarifado ou solicitante");
         }
 
-        // Soma itens repetidos e bloqueia os estoques sempre na mesma ordem.
+        // Valida a demanda autorizada. Aprovação não consulta, reserva ou retira estoque.
         Map<Integer, Double> quantidades = new TreeMap<>();
         for (ItemSolicitacao item : itens) {
             if (item.getProduto() == null || item.getProduto().getId() == null
@@ -131,37 +132,8 @@ public class SolicitacaoService {
             quantidades.put(item.getProduto().getId(), total);
         }
 
-        Map<Integer, Estoque> estoques = new LinkedHashMap<>();
-        for (Map.Entry<Integer, Double> entrada : quantidades.entrySet()) {
-            Estoque estoque = estoqueRepository.buscarParaAtualizacao(
-                    entrada.getKey(), solicitacao.getAlmoxarifado().getId())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
-            if (!Double.isFinite(estoque.getQuantidade()) || estoque.getQuantidade() < entrada.getValue()) {
-                throw new IllegalArgumentException("Estoque insuficiente ou saldo inválido");
-            }
-            estoques.put(entrada.getKey(), estoque);
-        }
-
-        for (Map.Entry<Integer, Estoque> entrada : estoques.entrySet()) {
-            Estoque estoque = entrada.getValue();
-            double quantidade = quantidades.get(entrada.getKey());
-            double saldoAnterior = estoque.getQuantidade();
-            estoque.setQuantidade(saldoAnterior - quantidade);
-            estoqueRepository.save(estoque);
-
-            Movimentacao movimentacao = new Movimentacao();
-            movimentacao.setProduto(estoque.getProduto());
-            movimentacao.setAlmoxarifado(estoque.getAlmoxarifado());
-            movimentacao.setSolicitante(solicitacao.getSolicitante());
-            movimentacao.setResponsavel(responsavel);
-            movimentacao.setSolicitacao(solicitacao);
-            movimentacao.setTipo(TipoMovimentacao.SAIDA);
-            movimentacao.setQuantidade(quantidade);
-            movimentacao.setSaldoAnterior(saldoAnterior);
-            movimentacao.setSaldoPosterior(estoque.getQuantidade());
-            movimentacao.setDataHora(LocalDateTime.now());
-            movimentacaoRepository.save(movimentacao);
-        }
+        solicitacao.setResponsavelAprovacao(responsavel);
+        solicitacao.setDataAprovacao(LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
 
         solicitacao.getItens().size();
         solicitacao.setStatus(StatusSolicitacao.APROVADA);
