@@ -67,7 +67,7 @@ Não há lint configurado. `npm test` valida a camada API, pesquisas, quantidade
 
 ## Escopo e limites
 
-Todas as nove páginas usam a API. Dashboard calcula contagens dos registros retornados; não apresenta números offline. Busca de produtos e filtros de ativo/categoria/status/tipo usam contratos existentes. Combinação de filtros de estoque e histórico é local sobre as listas retornadas (a API não possui paginação ou filtros combinados).
+Todas as dez páginas usam a API. Dashboard calcula contagens dos registros retornados; não apresenta números offline. Busca de produtos e filtros de ativo/categoria/status/tipo usam contratos existentes. Combinação de filtros de estoque e histórico é local sobre as listas retornadas (a API não possui paginação ou filtros combinados).
 
 Produto preserva textos e vínculos legados na edição; novos cadastros pela interface exigem categoria/unidade ativas. Referência inativa já vinculada continua visível. Tipo de controle é texto livre conforme backend, sem criar enum novo. Sugestões de equivalência não bloqueiam gravação. Categorias/unidades usam PUT completo e enviam explicitamente ativo/fracionamento.
 
@@ -75,7 +75,7 @@ Aprovar exige seleção de funcionário e confirmação; rejeitar exige confirma
 
 Responsividade: sidebar recolhível até 850px, indicadores em duas colunas no mobile, formulários em uma coluna e tabelas com rolagem horizontal acessível. Modal usa dialog nativo, captura foco e suporta Escape; ações pendentes impedem fechar. Menu de navegação fecha ao selecionar página.
 
-Pendências: paginação, autenticação/permissões, deployment, testes completos de acessibilidade e Bloco 2 backend. Não há justificativa de rejeição, edição/exclusão de itens persistidos, idempotency key nem criação transacional com todos os itens nos contratos atuais; nenhum endpoint foi inventado.
+Pendências: paginação, autenticação/permissões, deployment, testes completos de acessibilidade e validação no banco alvo. Não há justificativa de rejeição, edição/exclusão de itens persistidos, idempotency key nem criação transacional com todos os itens nos contratos atuais; os fluxos existentes foram preservados. A nova transferência executa todos os itens em uma única transação no backend.
 
 ## Direção visual e verificação
 
@@ -132,3 +132,15 @@ Testes desta rodada ampliam a suíte existente: pesquisas e combinações, quant
 - Backend clean test: 91 testes, sem falhas/erros/ignorados; BUILD SUCCESS.
 - git diff --check: sem problemas. Nenhuma alteração de código/configuração/schema do backend, nenhum acesso ao MySQL, commit ou push.
 - Revisão visual após testes: Dashboard, Solicitações, Estoque, Movimentações e Produtos comparados no navegador. Sidebar, azul, composição e densidade preservados. Formulários novos revisados em desktop e mobile, com erro próximo ao campo e controles nativos consistentes. Nenhum overflow horizontal da página inteira ou erro de runtime nas cinco páginas. Capturas locais revisao-*.png e de formulários em test-results/ não são versionadas.
+
+
+## Bloco 2 — estoque inteligente e transferências
+
+- Estoque mostra mínimo/máximo e situação Normal/Baixo/Zerado, com modal de configuração e filtro “Precisam de atenção”. Busca anterior e filtros continuam combinados. Saldo <= mínimo configurado é alerta; sugestão usa máximo - saldo ou fica ausente sem máximo. Limites não alteram saldo.
+- Dashboard acrescenta tabela compacta de alertas reais; link abre `/estoques?atencao=true`. Falha de carregamento apresenta erro e retry de leitura, sem números inventados.
+- `/transferencias`: busca por número/material/local/responsável, filtros origem/destino/produto via API, criação com catálogo e vários materiais, consulta de saldo e validações. Revisão confere novamente os saldos e exige confirmação explícita. Sucesso abre detalhes; “Ver movimentações” navega a `/movimentacoes?transferenciaId=...`, com vínculo de retorno.
+- Gravação de transferência é um POST atômico; resposta perdida/5xx impede repetição no rascunho e orienta conferir a listagem. Não há chave de idempotência persistida, edição/cancelamento/exclusão, PDF ou autenticação nesta rodada.
+- Estilos aprovados/Brand foram preservados. PNGs oficiais ainda ausentes: fallback textual e caminhos mantidos, sem logo criada.
+- Testes: 32 Node (19 anteriores + 13 novos), 20 Playwright (10 anteriores + 10 novos), além de 135 backend (91 anteriores + 44 novos). Usar H2 isolado pelo script existente; **não iniciar servidor de produção/MySQL para E2E**. Novos fluxos/capturas cobrem 1440/768/390px.
+
+Contratos e limitações: [API](../docs/api.md) e [documentação do Bloco 2](../docs/estoque-inteligente.md). Schema novo é manual e não foi aplicado a banco externo. Documento oficial encontrado é v1.3; associação à v1.4 aguarda o texto oficial. Prontidão de revisão funcional não significa prontidão para publicar sem autorização/idempotência/schema homologado.

@@ -27,6 +27,12 @@ export async function request(path, { method = 'GET', body, query, signal } = {}
   return data
 }
 export const api = {
+  stockLimits: (id, body) => request(`/estoques/${id}/limites`, { method: 'PUT', body }),
+  stockAlerts: (query, signal) => request('/estoques/alertas', { query, signal }),
+  restock: (query, signal) => request('/estoques/reposicoes', { query, signal }),
+  transfers: (query, signal) => request('/transferencias', { query, signal }),
+  createTransfer: body => request('/transferencias', { method: 'POST', body }),
+  transferMovements: (id, signal) => request(`/transferencias/${id}/movimentacoes`, { signal }),
   list: (resource, query, signal) => request(`/${resource}`, { query, signal }),
   get: (resource, id) => request(`/${resource}/${id}`),
   save: (resource, data) => request(`/${resource}${data.id ? '/' + data.id : ''}`, { method: data.id ? 'PUT' : 'POST', body: data }),

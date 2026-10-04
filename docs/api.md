@@ -121,3 +121,54 @@ Stack traces e mensagens SQL não são enviados ao cliente.
 7. Consultar saldo e `GET /solicitacoes/1/movimentacoes`.
 
 Antes de usar esta versão no MySQL, revisar e aplicar manualmente o schema preparado em `docs/sql`, incluindo a coluna `movimentacao.solicitacao_id` e o script `catalogo-mestre-manual.sql`. A aplicação mantém `ddl-auto=none` e não aplica migrations automaticamente.
+
+
+## Bloco 2 — estoque inteligente e transferências
+
+Os contratos existentes continuam válidos. Estoque acrescenta `estoqueMinimo`/`estoqueMaximo` anuláveis; Movimentacao acrescenta `transferenciaId` anulável. Os novos endpoints respondem DTOs, sem serializar o grafo JPA completo. Não existem PUT/DELETE de transferência.
+
+| Método | Rota | Uso |
+|---|---|---|
+| PUT | `/estoques/{id}/limites` | Substituir ambos os limites, sem alterar saldo/histórico |
+| GET | `/estoques/alertas?produtoId=&almoxarifadoId=` | Saldos <= mínimo configurado |
+| GET | `/estoques/reposicoes?produtoId=&almoxarifadoId=` | Alertas com sugestão positiva |
+| POST | `/transferencias` | Executar transferência atômica de 1 a 500 produtos |
+| GET | `/transferencias?origemId=&destinoId=&produtoId=` | Listar confirmadas, ID decrescente |
+| GET | `/transferencias/{id}` | Detalhes de todos os itens |
+| GET | `/transferencias/{id}/movimentacoes` | Saídas/entradas com saldos, origem/destino e responsável |
+
+PUT limites:
+
+```json
+{"estoqueMinimo":10,"estoqueMaximo":20}
+```
+
+Valores devem ser finitos e >= 0; máximo >= mínimo quando ambos presentes. `null` ou campo omitido remove aquele limite: **PUT substitui ambos**, não é atualização parcial. `{}` remove os dois. Configuração não é movimentação. Máximo é referência de reposição, não bloqueio de entrada/transferência acima dele. Limites podem ser decimais mesmo em unidade inteira: são parâmetros de alerta, não quantidades movimentadas.
+
+Alerta/resposta do PUT (exemplo):
+
+```json
+{"estoqueId":1,"produtoId":1,"codigo":"MAT-001","produto":"Parafuso","almoxarifadoId":1,"almoxarifado":"Central","unidade":"UN","saldoAtual":10,"estoqueMinimo":10,"estoqueMaximo":20,"quantidadeSugerida":10}
+```
+
+Sugestão = `max(0, máximo - saldo)`, somente se saldo <= mínimo e máximo presente. Ausente máximo: `null`; saldo acima do mínimo: PUT retorna sugestão `null`. `/reposicoes` exclui sugestões nulas/zero; `/alertas` mantém esses alertas. Consultas não geram compra, pedido ou movimentação. Filtros combinados por AND; pai inexistente retorna 404 e pai existente sem correspondência retorna `[]`.
+
+POST transferência:
+
+```json
+{"origemId":1,"destinoId":2,"responsavelId":1,"observacao":"Conferido na origem","itens":[{"produtoId":1,"quantidade":3}]}
+```
+
+Origem/destino distintos, referências existentes, produto ativo, quantidade positiva/finita, fracionamento conforme unidade configurada, produtos não repetidos, observação <= 1000 caracteres. Origem exige estoque cadastrado e suficiente; destino ausente é criado zerado dentro da mesma transação. Sem cadastro duplicado, saldo negativo ou resultado parcial. Saldo numericamente inválido/overflow ou quantidade que não altera o double por perda de precisão é rejeitado. Não se infere fracionamento de textos legados.
+
+Resposta POST/GET (200, conforme padrão atual):
+
+```json
+{"id":1,"almoxarifadoOrigem":{"id":1,"nome":"Central"},"almoxarifadoDestino":{"id":2,"nome":"Obra A"},"responsavel":{"id":1,"nome":"Operador"},"dataHora":"2026-10-04T12:00:00.123456","status":"CONCLUIDA","observacao":"Conferido na origem","itens":[{"id":1,"produtoId":1,"codigo":"MAT-001","produto":"Parafuso","unidade":"UN","quantidade":3}]}
+```
+
+Histórico específico retorna `id`, `produto:{id,codigo,nome,unidadeMedida}`, `almoxarifado:{id,nome}`, `responsavel:{id,nome}`, `tipo:SAIDA|ENTRADA`, `quantidade`, `saldoAnterior`, `saldoPosterior`, `dataHora`, `transferenciaId`, `origemId`, `destinoId`. Cada item produz saída na origem e entrada no destino com mesmo horário/responsável. Movimentações manuais/solicitações permanecem com `transferenciaId:null`; transferência não inventa solicitante. Filtrar uma transferência por produto mantém **todos** os seus itens nos detalhes.
+
+Erros: 400 para regras inválidas; 404 para referência/estoque de origem inexistentes; 409 para integridade/lock; 500 genérico para falha interna. O POST executa imediatamente, não aceita ID/status/saldo escolhidos pelo cliente e não possui chave de idempotência. Em resposta perdida, consultar listagem/histórico antes de repetir; frontend bloqueia reenvio incerto.
+
+Schema é manual: consultar [estoque-inteligente.md](estoque-inteligente.md). Scripts MySQL e PostgreSQL foram preparados, **não executados**. Produção segue `ddl-auto=none`; endpoints novos exigem aplicação revisada do schema antes de deployment.

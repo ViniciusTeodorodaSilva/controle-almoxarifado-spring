@@ -67,6 +67,7 @@ public class EstoqueService {
             throw new ConflitoException("Estoque já cadastrado para este produto e almoxarifado");
         }
 
+        EstoqueInteligenteService.validarLimites(estoque.getEstoqueMinimo(), estoque.getEstoqueMaximo());
         return repository.save(estoque);
 
     }

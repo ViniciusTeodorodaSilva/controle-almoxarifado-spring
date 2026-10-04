@@ -4,7 +4,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LayoutDashboard, ClipboardList, Warehouse, ArrowLeftRight, Package, Tags, Ruler, Building2, Users, HardHat, ShoppingCart, Wrench, ClipboardCheck, Menu, X, ChevronRight } from 'lucide-react'
 const groups = [
   ['VISÃO GERAL', [['/dashboard','Dashboard',LayoutDashboard]]],
-  ['OPERAÇÃO', [['/solicitacoes','Solicitações',ClipboardList],['/estoques','Estoque',Warehouse],['/movimentacoes','Movimentações',ArrowLeftRight]]],
+  ['OPERAÇÃO', [['/solicitacoes','Solicitações',ClipboardList],['/estoques','Estoque',Warehouse],['/transferencias','Transferências',ArrowLeftRight],['/movimentacoes','Movimentações',ArrowLeftRight]]],
   ['CATÁLOGO', [['/produtos','Produtos',Package],['/categorias','Categorias',Tags],['/unidades','Unidades de medida',Ruler]]],
   ['ESTRUTURA', [['/almoxarifados','Almoxarifados',Building2],['/funcionarios','Funcionários',Users]]],
   ['PRÓXIMOS MÓDULOS', [[null,'Obras / OS',HardHat],[null,'Compras',ShoppingCart],[null,'Ferramentas',Wrench],[null,'Inventário',ClipboardCheck]]]

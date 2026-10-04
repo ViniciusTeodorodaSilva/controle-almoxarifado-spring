@@ -5,7 +5,7 @@ export function PageHeader({ eyebrow = 'PLATAFORMA BES', title, description, chi
 }
 export function Card({ children, className = '' }) { return <section className={`card ${className}`}>{children}</section> }
 export function Badge({ value }) {
-  const labels = { PENDENTE: 'Pendente', APROVADA: 'Aprovada', REJEITADA: 'Rejeitada', ENTRADA: 'Entrada', SAIDA: 'Saída', true: 'Ativo', false: 'Inativo' }
+  const labels = { NORMAL: 'Normal', BAIXO: 'Baixo', ZERADO: 'Zerado', CONCLUIDA: 'Concluída', PENDENTE: 'Pendente', APROVADA: 'Aprovada', REJEITADA: 'Rejeitada', ENTRADA: 'Entrada', SAIDA: 'Saída', true: 'Ativo', false: 'Inativo' }
   return <span className={`badge badge-${String(value).toLowerCase()}`}>{labels[String(value)] || value || '—'}</span>
 }
 export function LoadingState() { return <div className="state" role="status"><LoaderCircle className="animate-spin" size={24}/><strong>Carregando informações…</strong></div> }

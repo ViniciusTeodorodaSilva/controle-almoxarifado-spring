@@ -21,6 +21,12 @@ public class Estoque {
     private Almoxarifado almoxarifado;
 
     private double quantidade;
+    @Column(name = "estoque_minimo") private Double estoqueMinimo;
+    @Column(name = "estoque_maximo") private Double estoqueMaximo;
+    public Double getEstoqueMinimo() { return estoqueMinimo; }
+    public void setEstoqueMinimo(Double valor) { estoqueMinimo = valor; }
+    public Double getEstoqueMaximo() { return estoqueMaximo; }
+    public void setEstoqueMaximo(Double valor) { estoqueMaximo = valor; }
 
     public double getQuantidade() {
         return quantidade;

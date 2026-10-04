@@ -1,3 +1,6 @@
+import { Link, useSearchParams } from 'react-router-dom'
+import StockLimitsForm from './StockLimitsForm'
+import { stockSituation } from '../utils/stockIntelligence'
 import { useCallback, useState } from 'react'
 import { Eye, Plus, RefreshCw, Search } from 'lucide-react'
 import { api } from '../api/client'
@@ -12,7 +15,10 @@ function SearchInput({ label, placeholder, value, onChange }) {
 }
 export function Stocks() {
   const [product, setProduct] = useState(''), [warehouse, setWarehouse] = useState(''), [term, setTerm] = useState('')
-  const [operation, setOperation] = useState(null), [notice, setNotice] = useState('')
+  const [operation, setOperation] = useState(null), [notice, setNotice] = useState(''), [limits, setLimits] = useState(null)
+  const [params, setParams] = useSearchParams()
+  const attention = params.get('atencao') === 'true'
+  const alerts = useResource(useCallback(signal => api.stockAlerts(null, signal), []))
   const resource = useResource(useCallback(signal => api.list('estoques', null, signal), []))
   const refs = useResource(useCallback(signal => Promise.all(['produtos', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
   return <><PageHeader eyebrow="OPERAÇÃO" title="Estoque" description="Saldos disponíveis por produto e almoxarifado.">
@@ -23,22 +29,29 @@ export function Stocks() {
     <SearchInput label="Pesquisar estoque" placeholder="Código, nome ou descrição do produto…" value={term} onChange={setTerm}/>
     <select aria-label="Filtrar produto" value={product} onChange={event => setProduct(event.target.value)}><option value="">Todos os produtos</option>{nameOptions(refs.data?.[0])}</select>
     <select aria-label="Filtrar almoxarifado" value={warehouse} onChange={event => setWarehouse(event.target.value)}><option value="">Todos os almoxarifados</option>{nameOptions(refs.data?.[1])}</select>
-  </div>{refs.error && <Notice error>Filtros indisponíveis: {refs.error.message}</Notice>}
-  <ResourceView resource={resource}>{rows => <DataTable rows={filterStocks(rows, { term, product, warehouse })} columns={[
+    <select aria-label="Filtrar situação" value={attention ? 'attention' : ''} onChange={event => setParams(event.target.value ? { atencao: 'true' } : {})}><option value="">Todos os estoques</option><option value="attention">Precisam de atenção</option></select>
+  </div>{attention && <p className="stock-summary">Saldo no mínimo ou abaixo dele · reposição sugerida até o máximo, quando configurado.</p>}{refs.error && <Notice error>Filtros indisponíveis: {refs.error.message}</Notice>}
+  <ResourceView resource={attention ? { ...resource, loading: resource.loading || alerts.loading, error: resource.error || alerts.error, reload: () => { resource.reload(); alerts.reload() } } : resource}>{rows => <DataTable rows={filterStocks(rows, { term, product, warehouse }).filter(stock => !attention || alerts.data?.some(alert => alert.estoqueId === stock.id))} columns={[
     { key: 'codigo', label: 'Código', render: stock => <span className="code">{stock.produto?.codigo || '—'}</span> },
     { key: 'produto', label: 'Produto', render: stock => <strong>{stock.produto?.nome}</strong> },
     { key: 'almoxarifado', label: 'Almoxarifado', render: stock => stock.almoxarifado?.nome },
     { key: 'saldo', label: 'Saldo disponível', render: stock => <strong className="numeric">{quantity(stock.quantidade)}</strong> },
-    { key: 'unidade', label: 'Unidade', render: stock => unitLabel(stock.produto) }
+    { key: 'unidade', label: 'Unidade', render: stock => unitLabel(stock.produto) },
+    { key: 'minimo', label: 'Mínimo', render: stock => stock.estoqueMinimo == null ? '—' : quantity(stock.estoqueMinimo) },
+    { key: 'maximo', label: 'Máximo', render: stock => stock.estoqueMaximo == null ? '—' : quantity(stock.estoqueMaximo) },
+    { key: 'situacao', label: 'Situação', render: stock => <Badge value={stockSituation(stock)}/> },
+    ...(attention ? [{ key: 'reposicao', label: 'Reposição sugerida', render: stock => { const value = alerts.data?.find(alert => alert.estoqueId === stock.id)?.quantidadeSugerida; return value == null ? '—' : quantity(value) } }] : []),
+    { key: 'acoes', label: 'Ações', render: stock => <button className="btn text" onClick={() => { setNotice(''); setLimits(stock) }}>Configurar limites</button> }
   ]}/>}</ResourceView></Card>
-  {operation && <StockMovementForm type={operation} onClose={() => setOperation(null)} onSaved={message => { setOperation(null); setNotice(message); resource.reload() }} onChanged={resource.reload}/>}
+  {limits && <StockLimitsForm stock={limits} onClose={() => setLimits(null)} onSaved={message => { setLimits(null); setNotice(message); resource.reload(); alerts.reload() }}/>}
+  {operation && <StockMovementForm type={operation} onClose={() => setOperation(null)} onSaved={message => { setOperation(null); setNotice(message); resource.reload(); alerts.reload() }} onChanged={() => { resource.reload(); alerts.reload() }}/>}
   </>
 }
 export function Requests() {
   const [status, setStatus] = useState(''), [term, setTerm] = useState(''), [selected, setSelected] = useState(null), [creating, setCreating] = useState(false), [notice, setNotice] = useState('')
   const resource = useResource(useCallback(signal => api.requests(status, signal), [status]))
   return <><PageHeader eyebrow="OPERAÇÃO" title="Solicitações" description="Acompanhe demandas, confira itens e decida o atendimento.">
-    <button className="btn secondary" onClick={resource.reload}><RefreshCw size={16}/>Atualizar</button>
+    <button className="btn secondary" onClick={() => { resource.reload(); alerts.reload() }}><RefreshCw size={16}/>Atualizar</button>
     <button className="btn" onClick={() => { setNotice(''); setCreating(true) }}><Plus size={16}/>Nova solicitação</button>
   </PageHeader><Notice>{notice}</Notice><Card><div className="filters">
     <SearchInput label="Pesquisar solicitações" placeholder="Número, solicitante, almoxarifado ou material…" value={term} onChange={setTerm}/>
@@ -65,18 +78,19 @@ function RequestDetails({id,onClose,onChanged}){
  </>}</ResourceView></Modal>
 }
 export function Movements() {
+  const [params] = useSearchParams(), transferId = params.get('transferenciaId')
   const [type, setType] = useState(''), [product, setProduct] = useState(''), [warehouse, setWarehouse] = useState(''), [term, setTerm] = useState(''), [from, setFrom] = useState(''), [to, setTo] = useState('')
-  const resource = useResource(useCallback(signal => api.list(type ? 'movimentacoes/tipo/' + type : 'movimentacoes', null, signal), [type]))
+  const resource = useResource(useCallback(signal => transferId ? api.transferMovements(transferId, signal) : api.list(type ? 'movimentacoes/tipo/' + type : 'movimentacoes', null, signal), [type, transferId]))
   const refs = useResource(useCallback(signal => Promise.all(['produtos', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
   const dateError = from && to && from > to ? 'A data inicial deve ser anterior ou igual à data final.' : ''
-  return <><PageHeader eyebrow="RASTREABILIDADE" title="Movimentações" description="Histórico de entradas, saídas e alterações de saldo."><button className="btn secondary" onClick={resource.reload}><RefreshCw size={16}/>Atualizar</button></PageHeader><Card><div className="filters">
+  return <><PageHeader eyebrow="RASTREABILIDADE" title="Movimentações" description={transferId ? `Movimentações da transferência #${transferId}.` : "Histórico de entradas, saídas e alterações de saldo."}><button className="btn secondary" onClick={resource.reload}><RefreshCw size={16}/>Atualizar</button></PageHeader><Card><div className="filters">
     <SearchInput label="Pesquisar movimentações" placeholder="Código, material, pessoa ou solicitação…" value={term} onChange={setTerm}/>
     <select aria-label="Filtrar tipo" value={type} onChange={event => setType(event.target.value)}><option value="">Todos os tipos</option><option value="ENTRADA">Entradas</option><option value="SAIDA">Saídas</option></select>
     <select aria-label="Filtrar produto" value={product} onChange={event => setProduct(event.target.value)}><option value="">Todos os produtos</option>{nameOptions(refs.data?.[0])}</select>
     <select aria-label="Filtrar almoxarifado" value={warehouse} onChange={event => setWarehouse(event.target.value)}><option value="">Todos os almoxarifados</option>{nameOptions(refs.data?.[1])}</select>
     <div className="period-filter"><Field label="De"><input type="date" value={from} onChange={event => setFrom(event.target.value)}/></Field><Field label="Até"><input type="date" value={to} onChange={event => setTo(event.target.value)}/></Field></div>
   </div><Notice error>{dateError || (refs.error ? 'Filtros indisponíveis: ' + refs.error.message : '')}</Notice>
-  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).sort((a, b) => b.id - a.id)} columns={[
+  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).filter(row => !type || row.tipo === type).sort((a, b) => b.id - a.id)} columns={[
     { key: 'tipo', label: 'Tipo', render: row => <Badge value={row.tipo}/> },
     { key: 'codigo', label: 'Código', render: row => <span className="code">{row.produto?.codigo || '—'}</span> },
     { key: 'produto', label: 'Material', render: row => row.produto?.nome },
@@ -87,6 +101,7 @@ export function Movements() {
     { key: 'data', label: 'Data / hora', render: row => dateTime(row.dataHora) },
     { key: 'solicitante', label: 'Solicitante', render: row => row.solicitante?.nome || '—' },
     { key: 'responsavel', label: 'Responsável', render: row => row.responsavel?.nome || '—' },
-    { key: 'solicitacaoId', label: 'Solicitação' }
+    { key: 'solicitacaoId', label: 'Solicitação' },
+    { key: 'transferencia', label: 'Transferência', render: row => row.transferenciaId ? <Link to={`/transferencias?transferenciaId=${row.transferenciaId}`}>#{row.transferenciaId}</Link> : '—' }
   ]}/>}</ResourceView></Card></>
 }
