@@ -1,2 +1,2 @@
 package br.com.almoxarifado.model;
-public enum StatusNecessidadeCompra { ABERTA, ATENDIDA, CANCELADA }
+public enum StatusNecessidadeCompra { ABERTA, EM_COMPRA, ATENDIDA, CANCELADA }

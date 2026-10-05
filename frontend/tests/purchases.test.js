@@ -1,0 +1,15 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { needsToItems, orderBody, receiptBody, purchaseStatuses, money } from '../src/utils/purchases.js'
+import { routePermission, can } from '../src/auth/permissions.js'
+const need = (id, product, qty) => ({ id, produto: { id: product, nome: 'Material' }, solicitacaoId: id + 100, quantidade: 20, compra: { quantidadeDisponivel: qty } })
+test('consolida necessidades compatíveis sem perder origens', () => { const items=needsToItems([need(1,10,2),need(2,10,3),need(3,11,4)]);assert.equal(items.length,2);assert.equal(items[0].quantidade,5);assert.deepEqual(items[0].alocacoes.map(a=>a.necessidadeId),[1,2]);assert.equal(items[0].paraEstoque,false) })
+test('não preenche pedido a partir de faltas já vinculadas',()=>assert.deepEqual(needsToItems([need(1,10,0)]),[]))
+test('consolida frações sem transportar artefato binário para o formulário',()=>assert.equal(needsToItems([need(1,10,0.1),need(2,10,0.2)])[0].quantidade,0.3))
+test('pedido transmite somente campos permitidos',()=>{ const form={id:9,status:'APROVADO',total:0,criadoPor:99,fornecedorId:'1',almoxarifadoId:'2',observacao:'H2',itens:needsToItems([need(1,10,2)])};form.itens[0].valorUnitario='0';form.itens[0].quantidadeRecebida=50;const body=orderBody(form);assert.deepEqual(Object.keys(body),['fornecedorId','almoxarifadoId','observacao','itens']);assert.equal(body.itens[0].valorUnitario,'0');assert.ok(!('quantidadeRecebida' in body.itens[0]));assert.deepEqual(body.itens[0].alocacoes,[{necessidadeId:1,quantidade:2}]) })
+test('preço vazio permanece ausente em vez de virar zero',()=>{const form={fornecedorId:1,almoxarifadoId:2,itens:needsToItems([need(1,10,2)])};assert.equal(orderBody(form).itens[0].valorUnitario,null)})
+test('recebimento transmite somente quantidades explicitamente informadas',()=>{const order={almoxarifadoId:2,itens:[{id:11},{id:12},{id:13}]};assert.deepEqual(receiptBody(order,'5',{11:'2',12:'',13:'0'},'Conferido'),{almoxarifadoId:2,responsavelId:5,observacao:'Conferido',itens:[{itemPedidoId:11,quantidade:2}]})})
+test('novo fluxo possui permissões próprias por rota',()=>{assert.equal(routePermission['/pedidos-compra'],'COMPRA_LER');assert.equal(routePermission['/fornecedores'],'FORNECEDOR_LER');assert.equal(routePermission['/recebimentos-compra'],'RECEBIMENTO_LER');assert.equal(can({ativo:true,permissoes:['COMPRA_LER']},'COMPRA_APROVAR'),false)})
+test('estados de aprovação e recebimento permanecem distintos',()=>assert.deepEqual(purchaseStatuses,['RASCUNHO','AGUARDANDO_APROVACAO','APROVADO','PARCIALMENTE_RECEBIDO','RECEBIDO','CANCELADO']))
+
+test('valor monetário alto conserva quatro casas no envio e na apresentação',()=>{const form={fornecedorId:1,almoxarifadoId:2,itens:needsToItems([need(1,10,1)])};form.itens[0].valorUnitario='999999999999999.9999';assert.equal(orderBody(form).itens[0].valorUnitario,'999999999999999.9999');assert.equal(money('999999999999999.9999'),'R$ 999.999.999.999.999,9999');assert.equal(money('37.04'),'R$ 37,04')})

@@ -207,7 +207,7 @@ Todos os novos contratos retornam HTTP 200 em sucesso. 400: payload/quantidade/u
 
 Atendimento aceita EM_SEPARACAO/PARCIALMENTE_ATENDIDA; produto ativo, itens pertencentes à solicitação, quantidade positiva finita e respeitando unidade/pendente/saldo. Zero deve ser omitido do payload, não enviado. História de atendimento tem `id`, `solicitacaoId`, `responsavel`, `dataHora`, itens com `id`, `itemSolicitacaoId`, `produto`, `quantidade`. Movimentos adicionam `atendimentoId` nullable ao vínculo existente; movimentos legados permanecem sem esse vínculo.
 
-Necessidade retorna `id`, `itemSolicitacaoId`, `solicitacaoId`, `produto`, `almoxarifado`, `quantidade`, `status`, `dataHora`, `motivo`, `responsavel`. Estados ABERTA/ATENDIDA/CANCELADA, sem endpoint de alteração/exclusão nesta etapa. Unique por item também deduplica ações com outra chave, preservando fotografia já registrada. Reposição não apaga nem encerra automaticamente a necessidade.
+Necessidade retorna `id`, `itemSolicitacaoId`, `solicitacaoId`, `produto`, `almoxarifado`, `quantidade`, `status`, `dataHora`, `motivo`, `responsavel`. O Bloco 4 acrescenta EM_COMPRA, progresso quantitativo e cancelamento permissionado; ver o contrato abaixo. Não existe exclusão de necessidade. Unique por item também deduplica ações com outra chave, preservando fotografia já registrada. Entrada manual não encerra a necessidade. Somente recebimento de compra quantitativamente destinado a ela atualiza o progresso do Bloco 4.
 
 Documento frontend `/solicitacoes/{id}/lista-separacao` é HTML A4 imprimível, sem endpoint PDF. QR, comprovantes e autenticação ainda não entregues. Detalhes, limites, scripts e RFs: [Bloco 3](atendimento-solicitacoes.md).
 
@@ -218,3 +218,64 @@ Fora do profile `test`, `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` são obrigatóri
 ## Autenticação e autorização — Security Baseline 2
 
 Todos os endpoints operacionais descritos neste documento agora exigem sessão e permissão. Consultar [contratos e matriz](autenticacao-autorizacao.md#endpoints-novos). GET /auth/csrf e POST /auth/login são públicos; toda escrita exige X-CSRF-TOKEN. Novos: GET /auth/me, POST /auth/logout, GET/POST /usuarios, PUT /usuarios/{id}, PUT /usuarios/{id}/senha e GET /auditoria?pagina=0&tamanho=30. Não há DELETE de usuário/auditoria. 401 = sessão ausente/inválida; 403 = permissão/CSRF; 429 = limite de login. Contratos operacionais anteriores permanecem iguais.
+
+## Bloco 4 — fornecedores, pedidos e recebimento
+
+Todas as 16 rotas novas são **permissionadas**, sem exceção pública. HEAD acompanha GET. As 9 escritas exigem sessão válida e CSRF, além da authority. Inventário total: **85 handlers explícitos, 36 escritas**, preservados os 69 handlers e 27 escritas anteriores. Contagem não inclui HEAD/OPTIONS implícitos.
+
+| Método | Caminho | Authority HTTP e service |
+|---|---|---|
+| GET | `/fornecedores` | `FORNECEDOR_LER` |
+| GET | `/fornecedores/{id}` | `FORNECEDOR_LER` |
+| POST | `/fornecedores` | `FORNECEDOR_GERENCIAR` |
+| PUT | `/fornecedores/{id}` | `FORNECEDOR_GERENCIAR` |
+| GET | `/pedidos-compra` | `COMPRA_LER` |
+| GET | `/pedidos-compra/{id}` | `COMPRA_LER` |
+| POST | `/pedidos-compra` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}/submeter` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}/aprovar` | `COMPRA_APROVAR` |
+| PUT | `/pedidos-compra/{id}/cancelar` | `COMPRA_CANCELAR` |
+| GET | `/pedidos-compra/{id}/recebimentos` | `RECEBIMENTO_LER` |
+| POST | `/pedidos-compra/{id}/recebimentos` | `RECEBIMENTO_REGISTRAR` |
+| GET | `/recebimentos-compra` | `RECEBIMENTO_LER` |
+| GET | `/recebimentos-compra/{id}` | `RECEBIMENTO_LER` |
+| PUT | `/necessidades-compra/{id}/cancelar` | `NECESSIDADE_COMPRA_GERENCIAR` |
+
+Listagens de fornecedores, pedidos, recebimentos e histórico de recebimentos retornam envelope estável `{content,number,size,totalElements,totalPages,first,last}`. Query `pagina=0`, `tamanho=20`, máximo 100, ordem decrescente de ID. Filtros AND: fornecedor (`termo`, `documento`, `ativo`); pedido (`numero`, `fornecedorId`, `status`, `produtoId`, `necessidadeId`, `de`, `ate`); recebimento (`pedidoId`, `fornecedorId`, `produtoId`, `almoxarifadoId`, `de`, `ate`). Datas ISO, limites inclusivos por dia. Período invertido/página inválida: 400.
+
+Fornecedor: JSON `{nome,nomeFantasia,tipoPessoa,documento,email,telefone,contato,observacao,ativo}`; nome/tipo PF ou PJ obrigatórios, documento opcional normalizado e único. Listagens mascaram documento e omitem contatos; detalhe integral exige FORNECEDOR_GERENCIAR. Inativação por PUT, sem delete. O histórico de compras permanece consultável pelo filtro fornecedorId.
+
+Pedido de criação/edição:
+
+```json
+{"fornecedorId":1,"almoxarifadoId":2,"observacao":"Compra conferida","itens":[{"produtoId":3,"quantidade":10,"valorUnitario":12.3456,"paraEstoque":true,"observacao":"","alocacoes":[{"necessidadeId":4,"quantidade":6}]}]}
+```
+
+`paraEstoque=true` confirma explicitamente o excedente sem vínculo (4 neste exemplo). Para comprar exatamente uma falta, informar a quantidade alocada e paraEstoque=false. Sem alocações, toda quantidade exige paraEstoque=true. Até 500 itens, produto não repetido: consolidar suas necessidades no mesmo item. Necessidades vinculadas precisam compartilhar produto e almoxarifado planejado; quantidades disponíveis são calculadas e bloqueadas no servidor. Produto/fornecedor ativo é obrigatório na criação e submissão/aprovação. Recebimento de um pedido já aprovado preserva o compromisso histórico, mesmo se o fornecedor tiver sido posteriormente inativado.
+
+Resposta: ID e número `PC-ano-ID`, fornecedor/contexto e snapshots, status, criador/submissão/aprovador/cancelador e datas, itens ativos com quantidades pedida/recebida/pendente/para estoque, preços, subtotais e total calculados. Subtotais HALF_UP em 2 casas, preço DECIMAL(19,4). Valores negativos, preço ausente, precisão/limites inválidos são rejeitados. Quantidades continuam double, com cálculo decimal e bloqueio de resultado que perderia precisão ao retornar ao modelo existente.
+
+Estados: RASCUNHO → AGUARDANDO_APROVACAO → APROVADO → PARCIALMENTE_RECEBIDO → RECEBIDO. Só rascunho editável. Edições arquivam itens anteriores, sem apagá-los. Cancelamento exige JSON `{motivo:"..."}` e é bloqueado após qualquer quantidade recebida. Não há estorno/cancelamento parcial de saldo remanescente. Aprovar/cancelar novamente não repete efeito/auditoria; submeter fora de rascunho é conflito. Autorizar compra não cria estoque.
+
+Recebimento: POST com `Idempotency-Key` (16–100 caracteres `[A-Za-z0-9._:-]`) e JSON:
+
+```json
+{"almoxarifadoId":2,"responsavelId":5,"observacao":"Conferência física","itens":[{"itemPedidoId":6,"quantidade":4}]}
+```
+
+Exige pedido aprovado/parcial, destino planejado, itens pertencentes ao pedido e quantidade positiva até a pendência acumulada. Ator vem da sessão; responsável físico é cadastro operacional. Reenvio com mesma chave e payload canônico retorna o recebimento original, inclusive após conclusão; outra operação com a chave: 409. Ordem dos itens e espaços externos da observação não mudam o significado. Observação é codificada antes da assinatura para evitar colisão por delimitadores. Não retornar chave/assinatura em DTOs.
+
+Recebimento, itens, destinações, criação segura de estoque ausente, ENTRADA por item, acumulados do pedido/necessidade e auditoria são uma única transação. Movimento acrescenta `pedidoCompraId`, `recebimentoCompraId`, `atorCompraId`; campos históricos preservados. Quantidade destinada atende alocações em ordem de necessidadeId; sobra declarada vai ao estoque. Solicitação não recebe saída/atendimento automático.
+
+Necessidade conserva campos antigos e acrescenta `compra`: quantidade vinculada ainda pendente, recebida, disponível para novo vínculo, pendência atual da solicitação, pedidos/itens/status/quantidades e motivo de cancelamento. Estados ABERTA/EM_COMPRA/ATENDIDA/CANCELADA. ATENDIDA mede recebimento comprado destinado à falta, não entrega ao solicitante. Cancelar necessidade exige ausência de vínculo/recebimento e motivo. Legado sem contador fica A_CONFERIR com recebido null/disponível zero, sem comprar/cancelar por suposição.
+
+Campos desconhecidos, inclusive status, total, ator, aprovadoPor, saldo e recebidos acumulados enviados pelo cliente, são rejeitados em todos os níveis dos novos DTOs. 401 sem identidade; 403 authority/CSRF; 400 payload; 404 referência inexistente; 409 estado/quantidade concorrente/integridade. Detalhes SQL e segredos não são retornados.
+
+Decisões, RFs, evidências e restrições: [compras e recebimento](compras-recebimento.md).
+
+O contrato monetário novo responde `valorUnitario`, `subtotal` e `total` como **strings decimais**, sem notação científica. O frontend envia o valor unitário como string decimal e apresenta os dígitos sem conversão a Number; BigDecimal também aceita o JSON numérico mostrado no exemplo. Isso conserva a precisão nas quatro casas e nos valores grandes durante criação/edição/leitura.
+
+As alocações já comprometem a necessidade enquanto o pedido é RASCUNHO. Cancelar sem recebimentos ou editar o rascunho libera os vínculos anteriores. A leitura sob lock recarrega os contadores persistidos para evitar uso de estado antigo do contexto JPA. Evidências: [auditoria pré-commit](bloco4-auditoria-pre-commit.md).
+
+O snapshot de documento/contato do fornecedor no detalhe e documento do pedido respeita FORNECEDOR_GERENCIAR: sem essa authority, documento mascarado e contato null. A consulta do pedido não contorna a proteção existente no cadastro de fornecedor.

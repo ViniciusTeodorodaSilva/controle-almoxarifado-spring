@@ -56,3 +56,9 @@ O registro da fonte oficial foi documental. A implementação incremental do Blo
 [Relatório da Security Baseline 2](security-baseline-2-relatorio.md): validações, revisão adversarial, RFs, pendências e inventário completo de arquivos.
 
 [Auditoria adversarial final](security-baseline-2-auditoria-final.md): correções, inventário de 69 endpoints e evidências finais pré-commit.
+
+## Bloco 4 — compras e recebimento
+
+[Compras e recebimento](compras-recebimento.md): fornecedores PF/PJ, pedido único com aprovação explícita, vínculos quantitativos de necessidades, recebimento físico parcial/idempotente e entrada atômica. [Relatório final](bloco4-relatorio-final.md) registra os 84 pontos de revisão. Contratos em [API](api.md); matriz/inventário em [autenticação e autorização](autenticacao-autorizacao.md). Scripts [MySQL](sql/compras-recebimento-mysql-manual.sql) e [PostgreSQL](sql/compras-recebimento-postgresql-manual.sql) são propostas manuais não executadas. O estágio não autoriza banco externo, produção, commit ou push.
+
+- [Bloco 4 — auditoria final pré-commit](bloco4-auditoria-pre-commit.md): integridade, concorrência, segurança e evidências finais; sem commit/push.

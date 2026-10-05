@@ -86,7 +86,7 @@ export function Movements() {
     <select aria-label="Filtrar almoxarifado" value={warehouse} onChange={event => setWarehouse(event.target.value)}><option value="">Todos os almoxarifados</option>{nameOptions(refs.data?.[1])}</select>
     <div className="period-filter"><Field label="De"><input type="date" value={from} onChange={event => setFrom(event.target.value)}/></Field><Field label="Até"><input type="date" value={to} onChange={event => setTo(event.target.value)}/></Field></div>
   </div><Notice error>{dateError || (refs.error ? 'Filtros indisponíveis: ' + refs.error.message : '')}</Notice>
-  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).filter(row => !type || row.tipo === type).sort((a, b) => b.id - a.id)} columns={[
+  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).filter(row => (!type || row.tipo === type) && (!params.get('pedidoCompraId') || String(row.pedidoCompraId) === params.get('pedidoCompraId')) && (!params.get('recebimentoCompraId') || String(row.recebimentoCompraId) === params.get('recebimentoCompraId'))).sort((a, b) => b.id - a.id)} columns={[
     { key: 'tipo', label: 'Tipo', render: row => <Badge value={row.tipo}/> },
     { key: 'codigo', label: 'Código', render: row => <span className="code">{row.produto?.codigo || '—'}</span> },
     { key: 'produto', label: 'Material', render: row => row.produto?.nome },
@@ -99,6 +99,7 @@ export function Movements() {
     { key: 'responsavel', label: 'Responsável', render: row => row.responsavel?.nome || '—' },
     { key: 'solicitacaoId', label: 'Solicitação', render: row => row.solicitacaoId ? <Link to={`/solicitacoes?solicitacaoId=${row.solicitacaoId}`}>#{row.solicitacaoId}</Link> : '—' },
     { key: 'atendimentoId', label: 'Atendimento', render: row => row.atendimentoId ? `#${row.atendimentoId}` : '—' },
+    { key: 'compra', label: 'Compra / recebimento', render: row => row.pedidoCompraId ? <><Link to={`/pedidos-compra/${row.pedidoCompraId}`}>Pedido #{row.pedidoCompraId}</Link> · <Link to={`/recebimentos-compra/${row.recebimentoCompraId}/documento`}>Recebimento #{row.recebimentoCompraId}</Link></> : '—' },
     { key: 'transferencia', label: 'Transferência', render: row => row.transferenciaId ? <Link to={`/transferencias?transferenciaId=${row.transferenciaId}`}>#{row.transferenciaId}</Link> : '—' }
   ]}/>}</ResourceView></Card></>
 }

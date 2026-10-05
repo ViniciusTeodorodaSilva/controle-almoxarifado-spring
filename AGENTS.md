@@ -27,3 +27,9 @@ Seguir [docs/security.md](docs/security.md). Nunca versionar ou imprimir secrets
 Consultar [autenticação e autorização](docs/autenticacao-autorizacao.md) antes de modificar endpoints. Spring Security usa sessão/CSRF; declarar permissão HTTP e de service, auditar operações críticas sem segredo e testar autorização positiva/negativa com H2. Nenhum endpoint operacional novo pode ficar público por conveniência de teste. A fonte mestre continua docs/Documentacao_Mestre_Plataforma_BES_v1_4.docx.
 
 Todo novo endpoint deve ser classificado explicitamente como público, autenticado ou permissionado e incluído no inventário de endpoints. Escritas autenticadas exigem CSRF conforme a arquitetura de sessão atual. Operações críticas devem declarar authority e autorização no service, registrar auditoria com ator autenticado separado do responsável operacional e avaliar idempotência e concorrência quando aplicáveis.
+
+## Compras e recebimento — Bloco 4
+
+Consultar [compras e recebimento](docs/compras-recebimento.md) e o inventário em [API](docs/api.md). PedidoCompra é o único agregado de compra; não duplicar NecessidadeCompra nem produtos. Vínculos são quantitativos e bloqueados por necessidade. Aprovação não altera estoque; recebimento físico gera ENTRADA atômica/idempotente e não atende a solicitação. Ordem de locks: pedido existente → necessidades por ID → fornecedor quando necessário → produtos por ID → pares de estoque determinísticos. Recebimento nunca bloqueia solicitação; atendimento preserva seu protocolo anterior. Não inverter essa ordem nem substituir locks por leituras seguidas de save.
+
+Pedido com qualquer recebimento não pode ser cancelado neste estágio. Não inferir atores/quantidades do legado. Scripts SQL são manuais, sujeitos a homologação e autorização específica. RFs/documentos parciais e pendências permanecem explícitos; o bloco não autoriza financeiro, NF/XML/IA, OS/CC, estorno, produção ou publicação.

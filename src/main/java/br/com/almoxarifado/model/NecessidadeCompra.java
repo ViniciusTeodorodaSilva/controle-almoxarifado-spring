@@ -2,6 +2,7 @@ package br.com.almoxarifado.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 @Entity
+@org.hibernate.annotations.BatchSize(size=100)
 @Table(name="necessidade_compra")
 public class NecessidadeCompra {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Integer id;
@@ -21,6 +22,13 @@ public class NecessidadeCompra {
     @ManyToOne @JoinColumn(name="responsavel_id",nullable=false) private Funcionario responsavel;
     public Funcionario getResponsavel() { return responsavel; }
     public void setResponsavel(Funcionario value) { responsavel=value; }
+    @Column private Double quantidadeRecebida;
+    public double getQuantidadeRecebida() { return quantidadeRecebida==null?0:quantidadeRecebida; }
+    public boolean isCompraRastreavel(){return quantidadeRecebida!=null;}
+    @Column(length=1000) private String motivoCancelamento;
+    public String getMotivoCancelamento(){return motivoCancelamento;}
+    public void setMotivoCancelamento(String v){motivoCancelamento=v;}
+    public void setQuantidadeRecebida(double v) { quantidadeRecebida=v; }
     @Column(nullable=false) private double quantidade;
     public double getQuantidade() { return quantidade; }
     public void setQuantidade(double value) { quantidade=value; }

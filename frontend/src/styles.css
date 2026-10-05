@@ -112,3 +112,21 @@ body:has(dialog[open]){overflow:hidden}
 .login-panel h1{font-size:24px;margin:0 0 20px}.login-panel form{display:grid;gap:10px}.login-panel label{font-weight:600;font-size:13px}.login-panel input{width:100%;min-height:40px}.login-panel .btn{margin-top:12px;width:100%}.login-error{font-size:13px;color:#a61b1b}
 .user-menu{display:flex;align-items:center;gap:12px;min-width:0}.user-menu>span{display:grid;max-width:200px}.user-menu strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.user-menu small{font-size:10px;color:#667085}.table-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:600px){.login-page{padding:16px}.login-panel{padding:22px}.user-menu{gap:4px}.user-menu>span{max-width:100px}.user-menu .btn{padding:6px}.breadcrumb{font-size:11px}}
+
+.purchase-item { margin: 16px 0; padding: 16px; border: 1px solid var(--line, #d9dee5); border-radius: 8px; min-width: 0; }
+.purchase-check { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; }
+.purchase-check input { width: auto; flex: 0 0 auto; }
+.dialog fieldset { min-width: 0; }
+.purchase-document .document-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+.purchase-document .document-table th, .purchase-document .document-table td { padding: 7px; border: 1px solid #d4d8dd; overflow-wrap: anywhere; vertical-align: top; }
+.purchase-document .document-table th:first-child { width: 29%; }
+.purchase-document .document-table th:last-child { width: 24%; }
+.purchase-document .document-table p { margin: 3px 0; }
+.document-note { font-size: 11px; overflow-wrap: anywhere; }
+@media print { .purchase-document .document-table thead { display: table-header-group; } .purchase-document .document-table tr { break-inside: avoid; } }
+
+.purchase-document .document-table th:nth-child(2), .purchase-document .document-table td:nth-child(2) { width: 6%; }
+.purchase-document .document-table th:nth-child(3) { width: 10%; }
+.purchase-document .document-table th:nth-child(4) { width: 15%; }
+.purchase-document .document-table th:nth-child(5) { width: 16%; }
+.purchase-document .document-metadata dd { overflow-wrap: anywhere; }

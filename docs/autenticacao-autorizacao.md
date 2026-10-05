@@ -176,3 +176,39 @@ Verificações finais e inventário da entrega são registrados no relatório de
 | POST | `/usuarios` | Não | Sim | USUARIO_GERENCIAR | Sim |
 | PUT | `/usuarios/{id}` | Não | Sim | USUARIO_GERENCIAR | Sim |
 | PUT | `/usuarios/{id}/senha` | Não | Sim | USUARIO_GERENCIAR | Sim |
+
+## Extensão permissionada — Bloco 4
+
+Compras amplia o inventário para 85 handlers/36 escritas (16 novos/9 escritas), mantendo sessão, CSRF, CORS explícito, cookies, revogação, auditoria e gates da Security Baseline 2. Nenhuma rota operacional ficou pública.
+
+| Método | Caminho | Authority HTTP e service |
+|---|---|---|
+| GET | `/fornecedores` | `FORNECEDOR_LER` |
+| GET | `/fornecedores/{id}` | `FORNECEDOR_LER` |
+| POST | `/fornecedores` | `FORNECEDOR_GERENCIAR` |
+| PUT | `/fornecedores/{id}` | `FORNECEDOR_GERENCIAR` |
+| GET | `/pedidos-compra` | `COMPRA_LER` |
+| GET | `/pedidos-compra/{id}` | `COMPRA_LER` |
+| POST | `/pedidos-compra` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}/submeter` | `COMPRA_CRIAR` |
+| PUT | `/pedidos-compra/{id}/aprovar` | `COMPRA_APROVAR` |
+| PUT | `/pedidos-compra/{id}/cancelar` | `COMPRA_CANCELAR` |
+| GET | `/pedidos-compra/{id}/recebimentos` | `RECEBIMENTO_LER` |
+| POST | `/pedidos-compra/{id}/recebimentos` | `RECEBIMENTO_REGISTRAR` |
+| GET | `/recebimentos-compra` | `RECEBIMENTO_LER` |
+| GET | `/recebimentos-compra/{id}` | `RECEBIMENTO_LER` |
+| PUT | `/necessidades-compra/{id}/cancelar` | `NECESSIDADE_COMPRA_GERENCIAR` |
+
+| Perfil | Novas capacidades |
+|---|---|
+| ADMIN | Todas as novas authorities |
+| GESTOR | Leitura de fornecedores/compras/recebimentos; FORNECEDOR_GERENCIAR, COMPRA_CRIAR/APROVAR/CANCELAR, NECESSIDADE_COMPRA_GERENCIAR |
+| ALMOXARIFE | Leitura de fornecedores/compras/recebimentos; RECEBIMENTO_REGISTRAR |
+| CONSULTA | Somente leitura de fornecedores/compras/recebimentos |
+
+Os perfis preservam permissões anteriores. GESTOR não recebe RECEBIMENTO_REGISTRAR; ALMOXARIFE não cria/aprova/cancela compras; nenhuma nova authority concede USUARIO_GERENCIAR. @PreAuthorize nos serviços permanece obrigatório. Ator autenticado e responsável físico são separados. Eventos de sucesso usam AuditoriaService com transação MANDATORY, sem dados de documento/contato, payload integral, chaves, hashes ou secrets. Falha no recebimento reverte também auditoria de sucesso e atualizações de necessidade.
+
+Cobertura adversarial: matriz positiva/negativa HTTP/service, CSRF em todas as 36 escritas, mass assignment, concorrência, rollback, idempotência e resposta perdida. Ver [Bloco 4](compras-recebimento.md).
+
+No Bloco 4, a proteção de documento/contato do fornecedor vale também para snapshots retornados no pedido: documento integral e contato apenas com FORNECEDOR_GERENCIAR; demais leitores recebem máscara/null. Documento imprimível consome esse mesmo GET permissionado. Evidências: [auditoria pré-commit do Bloco 4](bloco4-auditoria-pre-commit.md).

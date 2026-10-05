@@ -8,6 +8,20 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "movimentacao")
 public class Movimentacao {
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="ator_compra_id",insertable=false,updatable=false)
+    private br.com.almoxarifado.security.Usuario atorCompraReferencia;
+
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="item_recebimento_compra_id",unique=true) @JsonIgnore
+    private br.com.almoxarifado.compras.ItemRecebimentoCompra itemRecebimentoCompra;
+    public void setItemRecebimentoCompra(br.com.almoxarifado.compras.ItemRecebimentoCompra v){itemRecebimentoCompra=v;}
+    public Integer getRecebimentoCompraId(){return itemRecebimentoCompra==null?null:itemRecebimentoCompra.getRecebimentoId();}
+    public Integer getPedidoCompraId(){return itemRecebimentoCompra==null?null:itemRecebimentoCompra.getPedidoId();}
+    @Column(name="ator_compra_id")
+    private Long atorCompraId;
+    public Long getAtorCompraId(){return atorCompraId;}
+    public void setAtorCompraId(Long v){atorCompraId=v;}
+
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="atendimento_id") @JsonIgnore
     private AtendimentoSolicitacao atendimento;
     public AtendimentoSolicitacao getAtendimento() { return atendimento; }
