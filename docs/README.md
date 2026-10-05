@@ -46,3 +46,5 @@ Logo: utilizar os assets oficiais B&S quando disponíveis; não criar identidade
 - [Orientações para futuras sessões Codex](../AGENTS.md).
 
 O registro da fonte oficial foi documental. A implementação incremental do Bloco 3 está descrita em [atendimento-solicitacoes.md](atendimento-solicitacoes.md), incluindo mudança deliberada da aprovação, compatibilidade legada, cobertura real dos RFs e scripts manuais não executados.
+
+- [Configuração segura e Security Baseline 1](security.md).

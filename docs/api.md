@@ -210,3 +210,7 @@ Atendimento aceita EM_SEPARACAO/PARCIALMENTE_ATENDIDA; produto ativo, itens pert
 Necessidade retorna `id`, `itemSolicitacaoId`, `solicitacaoId`, `produto`, `almoxarifado`, `quantidade`, `status`, `dataHora`, `motivo`, `responsavel`. Estados ABERTA/ATENDIDA/CANCELADA, sem endpoint de alteração/exclusão nesta etapa. Unique por item também deduplica ações com outra chave, preservando fotografia já registrada. Reposição não apaga nem encerra automaticamente a necessidade.
 
 Documento frontend `/solicitacoes/{id}/lista-separacao` é HTML A4 imprimível, sem endpoint PDF. QR, comprovantes e autenticação ainda não entregues. Detalhes, limites, scripts e RFs: [Bloco 3](atendimento-solicitacoes.md).
+
+## Configuração segura do backend
+
+Fora do profile `test`, `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` são obrigatórias e externas. Consulte [Security Baseline 1](security.md) para desenvolvimento, testes, produção e rotação. A API e os contratos operacionais permanecem iguais.

@@ -26,6 +26,8 @@ Abra **http://localhost:5173**. Ctrl+C encerra cada servidor. Use npm.cmd quando
 
 ## Usar com o Spring Boot configurado normalmente
 
+Antes de iniciar o backend fora de H2, definir `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` no ambiente do processo, conforme [configuração segura](../docs/security.md). Não há credenciais padrão; `.env` não é carregado automaticamente pelo Spring. Não colocar essas variáveis em `VITE_*`.
+
 Se o schema de produção já foi revisado/aplicado conforme docs/sql e o banco estiver preparado, inicie o backend como de costume, na raiz:
 
 ```powershell

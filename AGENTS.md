@@ -17,3 +17,7 @@ Avaliar especialmente **RF205–RF218** em cada módulo: documentos operacionais
 Usar a logo oficial B&S quando os assets oficiais estiverem disponíveis. Não inventar logo. Enquanto ausentes, conservar fallback textual BES e os caminhos de assets preparados.
 
 Trabalhar na branch de desenvolvimento vigente, sem alterar `main`, e seguir as autorizações específicas da rodada para banco, commits e publicação.
+
+## Segurança de configuração
+
+Seguir [docs/security.md](docs/security.md). Nunca versionar ou imprimir secrets; nunca colocá-los no frontend/VITE_*. Usar configuração externa e revisar staging antes de commit. Credenciais já versionadas são consideradas comprometidas até rotação. Security gate obrigatório antes de produção; não acessar banco nem rotacionar credenciais sem autorização específica.

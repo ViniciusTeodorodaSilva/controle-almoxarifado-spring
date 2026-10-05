@@ -31,3 +31,18 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local configuration and private material
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+*.key
+*.p12
+*.pfx
+*.mv.db
+*.trace.db
+*.sqlite
+*.sqlite3
