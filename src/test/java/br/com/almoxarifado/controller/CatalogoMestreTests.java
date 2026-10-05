@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@org.springframework.security.test.context.support.WithMockUser(authorities={"USUARIO_GERENCIAR","AUDITORIA_LER","PRODUTO_LER","PRODUTO_GERENCIAR","CATEGORIA_LER","CATEGORIA_GERENCIAR","UNIDADE_LER","UNIDADE_GERENCIAR","ESTOQUE_LER","ESTOQUE_MOVIMENTAR","ESTOQUE_TRANSFERIR","ESTOQUE_CONFIGURAR","SOLICITACAO_LER","SOLICITACAO_CRIAR","SOLICITACAO_APROVAR","SOLICITACAO_REJEITAR","SOLICITACAO_SEPARAR","SOLICITACAO_ATENDER","NECESSIDADE_COMPRA_LER","NECESSIDADE_COMPRA_CRIAR","MOVIMENTACAO_LER","FUNCIONARIO_LER","FUNCIONARIO_GERENCIAR","ALMOXARIFADO_LER","ALMOXARIFADO_GERENCIAR"})
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:bes-catalogo;MODE=MySQL;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -51,11 +52,11 @@ class CatalogoMestreTests {
     }
     @Test void categoriaEquivalenteDuplicadaRetorna409() throws Exception {
         categorias.cadastrar(categoria("Material Elétrico"));
-        mvc.perform(post("/categorias").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\" material  eletrico \"}"))
+        mvc.perform(post("/categorias").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\" material  eletrico \"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.status").value(409));
     }
     @Test void categoriaPodeSerInativadaEFiltrada() throws Exception {
-        mvc.perform(put("/categorias/{id}", categoria.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Ferramentas\",\"ativo\":false}"))
+        mvc.perform(put("/categorias/{id}", categoria.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Ferramentas\",\"ativo\":false}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ativo").value(false));
         mvc.perform(get("/categorias").param("ativo", "true")).andExpect(jsonPath("$.length()").value(0));
         mvc.perform(get("/categorias/{id}", categoria.getId())).andExpect(status().isOk());
@@ -73,11 +74,11 @@ class CatalogoMestreTests {
         assertEquals("CUSTOM", nova.getSigla()); assertTrue(nova.isPermiteFracionamento());
     }
     @Test void siglaDuplicadaRetorna409() throws Exception {
-        mvc.perform(post("/unidades-medida").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Peça\",\"sigla\":\" un \"}"))
+        mvc.perform(post("/unidades-medida").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Peça\",\"sigla\":\" un \"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.path").value("/unidades-medida"));
     }
     @Test void unidadePodeSerInativadaEFiltrada() throws Exception {
-        mvc.perform(put("/unidades-medida/{id}", unidade.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Unidade\",\"sigla\":\"UN\",\"ativo\":false}"))
+        mvc.perform(put("/unidades-medida/{id}", unidade.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Unidade\",\"sigla\":\"UN\",\"ativo\":false}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ativo").value(false));
         mvc.perform(get("/unidades-medida").param("ativo", "true")).andExpect(jsonPath("$.length()").value(0));
     }
@@ -88,9 +89,9 @@ class CatalogoMestreTests {
         assertThrows(IllegalArgumentException.class, () -> unidades.atualizar(unidade.getId(), dados));
     }
     @Test void validaObrigatoriosECadastrosInexistentes() throws Exception {
-        mvc.perform(post("/categorias").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(post("/categorias").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(post("/unidades-medida").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Unidade\"}"))
+        mvc.perform(post("/unidades-medida").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Unidade\"}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/categorias/2147483647")).andExpect(status().isNotFound());
         mvc.perform(get("/unidades-medida/2147483647")).andExpect(status().isNotFound());
@@ -104,7 +105,7 @@ class CatalogoMestreTests {
     }
     @Test void codigoDuplicadoRetorna409() throws Exception {
         produtos.cadastrar(produto("MAT-001"));
-        mvc.perform(post("/produtos").contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"mat-001\",\"nome\":\"Outra\"}"))
+        mvc.perform(post("/produtos").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"mat-001\",\"nome\":\"Outra\"}"))
                 .andExpect(status().isConflict());
     }
     @Test void nomeParecidoNaoBloqueiaCadastro() {
@@ -113,14 +114,14 @@ class CatalogoMestreTests {
     }
     @Test void referenciasInexistentesRetornam404() throws Exception {
         for (String campo : new String[]{"categoriaMaterial", "unidadeMedidaConfigurada"}) {
-            mvc.perform(post("/produtos").contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(post("/produtos").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"nome\":\"Novo\",\"" + campo + "\":{\"id\":2147483647}}"))
                     .andExpect(status().isNotFound());
         }
         assertEquals(0, produtoRepository.count());
     }
     @Test void referenciaSemIdRetorna400() throws Exception {
-        mvc.perform(post("/produtos").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\",\"categoriaMaterial\":{}}"))
+        mvc.perform(post("/produtos").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\",\"categoriaMaterial\":{}}"))
                 .andExpect(status().isBadRequest());
     }
     @Test void categoriaInativaNaoPodeSerUsadaEmNovoProduto() {
@@ -139,7 +140,7 @@ class CatalogoMestreTests {
     }
     @Test void atualizacaoLegadaPreservaCodigoReferenciasEInativacao() throws Exception {
         Produto p = produto("A"); p.setAtivo(false); p = produtos.cadastrar(p);
-        mvc.perform(put("/produtos/{id}", p.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Alterado\"}"))
+        mvc.perform(put("/produtos/{id}", p.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Alterado\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.codigo").value("A"))
                 .andExpect(jsonPath("$.ativo").value(false)).andExpect(jsonPath("$.unidadeMedidaConfigurada.id").value(unidade.getId()));
     }

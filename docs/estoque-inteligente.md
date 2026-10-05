@@ -23,7 +23,7 @@ Máximo não é capacidade física: não bloqueia entrada ou transferência acim
 - Repositories de transferência/itens e extensões de estoque/movimentação. Services separados de estoque inteligente e transferência mantêm controllers pequenos e uma fronteira clara para futura autorização.
 - Sete rotas novas, documentadas em [api.md](api.md), sem PUT/DELETE físico de transferência. Filtros parentais inexistentes são 404; existentes sem correspondências são `[]`.
 
-Transferência representa execução imediatamente confirmada, não logística em trânsito. Não há edição, cancelamento, estorno ou retorno automático. Operação inversa é outra transferência independente; não existe regra inventada de cancelamento. Funcionário responsável é uma referência operacional fornecida pelo cliente, ainda não uma identidade autenticada.
+Transferência representa execução imediatamente confirmada, não logística em trânsito. Não há edição, cancelamento, estorno ou retorno automático. Operação inversa é outra transferência independente; não existe regra inventada de cancelamento. Funcionário responsável é uma referência operacional fornecida pelo cliente. A Security Baseline 2 registra separadamente a identidade autenticada do ator; o funcionário operacional não é automaticamente o usuário logado.
 
 ## Transação, locks e integridade
 

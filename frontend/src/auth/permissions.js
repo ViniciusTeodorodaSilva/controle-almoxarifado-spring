@@ -1,0 +1,3 @@
+export function can(user, permission) { return !!user?.ativo && !!user?.permissoes?.includes(permission) }
+export const registryPermission = {categorias:'CATEGORIA_GERENCIAR','unidades-medida':'UNIDADE_GERENCIAR',funcionarios:'FUNCIONARIO_GERENCIAR',almoxarifados:'ALMOXARIFADO_GERENCIAR'}
+export const routePermission = {'/produtos':'PRODUTO_LER','/categorias':'CATEGORIA_LER','/unidades':'UNIDADE_LER','/estoques':'ESTOQUE_LER','/transferencias':'ESTOQUE_LER','/movimentacoes':'MOVIMENTACAO_LER','/solicitacoes':'SOLICITACAO_LER','/necessidades-compra':'NECESSIDADE_COMPRA_LER','/funcionarios':'FUNCIONARIO_LER','/almoxarifados':'ALMOXARIFADO_LER','/usuarios':'USUARIO_GERENCIAR'}

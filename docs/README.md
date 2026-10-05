@@ -48,3 +48,11 @@ Logo: utilizar os assets oficiais B&S quando disponíveis; não criar identidade
 O registro da fonte oficial foi documental. A implementação incremental do Bloco 3 está descrita em [atendimento-solicitacoes.md](atendimento-solicitacoes.md), incluindo mudança deliberada da aprovação, compatibilidade legada, cobertura real dos RFs e scripts manuais não executados.
 
 - [Configuração segura e Security Baseline 1](security.md).
+
+## Security Baseline 2
+
+[Autenticação, autorização e auditoria](autenticacao-autorizacao.md): contratos auth/usuários, matriz dos quatro perfis, sessão/CSRF, bootstrap externo, auditoria e scripts manuais de banco. Implementação incremental subordinada à Documentacao_Mestre_Plataforma_BES_v1_4.docx; preparação não conclui RFs futuros.
+
+[Relatório da Security Baseline 2](security-baseline-2-relatorio.md): validações, revisão adversarial, RFs, pendências e inventário completo de arquivos.
+
+[Auditoria adversarial final](security-baseline-2-auditoria-final.md): correções, inventário de 69 endpoints e evidências finais pré-commit.

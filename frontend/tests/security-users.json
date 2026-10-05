@@ -1,0 +1,30 @@
+{
+  "ADMIN": {
+    "username": "h2.admin",
+    "password": "H2-only-fixture-passphrase-2026!",
+    "nomeExibicao": "H2 ADMIN",
+    "perfil": "ADMIN",
+    "ativo": true
+  },
+  "GESTOR": {
+    "username": "h2.gestor",
+    "password": "H2-only-fixture-passphrase-2026!",
+    "nomeExibicao": "H2 GESTOR",
+    "perfil": "GESTOR",
+    "ativo": true
+  },
+  "ALMOXARIFE": {
+    "username": "h2.almoxarife",
+    "password": "H2-only-fixture-passphrase-2026!",
+    "nomeExibicao": "H2 ALMOXARIFE",
+    "perfil": "ALMOXARIFE",
+    "ativo": true
+  },
+  "CONSULTA": {
+    "username": "h2.consulta",
+    "password": "H2-only-fixture-passphrase-2026!",
+    "nomeExibicao": "H2 CONSULTA",
+    "perfil": "CONSULTA",
+    "ativo": true
+  }
+}

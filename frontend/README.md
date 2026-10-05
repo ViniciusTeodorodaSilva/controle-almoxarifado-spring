@@ -1,6 +1,6 @@
 # BES — Frontend operacional
 
-React + JavaScript/JSX + Vite + Tailwind CSS. Node.js 22.12+ ou 24 LTS, npm, Java 17+ e Maven Wrapper do repositório. Dependências fixadas em package-lock.json; não há TypeScript, autenticação nem dados fictícios na interface.
+React + JavaScript/JSX + Vite + Tailwind CSS. Node.js 22.12+ ou 24 LTS, npm, Java 17+ e Maven Wrapper do repositório. Dependências fixadas em package-lock.json; não há TypeScript nem dados fictícios na interface. A Security Baseline 2 adiciona autenticação real por sessão e CSRF.
 
 ## Abrir a BES sem acessar MySQL
 
@@ -73,7 +73,7 @@ Todas as dez páginas usam a API. Dashboard calcula contagens dos registros reto
 
 Produto preserva textos e vínculos legados na edição; novos cadastros pela interface exigem categoria/unidade ativas. Referência inativa já vinculada continua visível. Tipo de controle é texto livre conforme backend, sem criar enum novo. Sugestões de equivalência não bloqueiam gravação. Categorias/unidades usam PUT completo e enviam explicitamente ativo/fracionamento.
 
-Aprovar exige seleção de funcionário e confirmação; rejeitar exige confirmação. Erros 400/404/409 exibem mensagem do backend. Nenhuma sessão/autenticação é presumida. Não há exclusão física ou edição de saldo. Módulos futuros aparecem como Em breve, sem ações fictícias.
+Aprovar exige seleção de funcionário e confirmação; rejeitar exige confirmação. Erros 400/404/409 exibem mensagem do backend. A sessão é verificada em /auth/me e cada operação exige permissão no backend. Não há exclusão física ou edição de saldo. Módulos futuros aparecem como Em breve, sem ações fictícias.
 
 Responsividade: sidebar recolhível até 850px, indicadores em duas colunas no mobile, formulários em uma coluna e tabelas com rolagem horizontal acessível. Modal usa dialog nativo, captura foco e suporta Escape; ações pendentes impedem fechar. Menu de navegação fecha ao selecionar página.
 
@@ -122,7 +122,7 @@ Em falha 400/404/409, a mensagem é exibida e o saldo é consultado novamente. E
 
 Design aprovado preservado: sidebar escura, azul #285a7c, tabelas compactas e agrupamento atual dos menus. Refinamentos restritos a contraste, divisores, hover/focus, campos de erro e ações primárias. Dashboard conserva a composição e usa ATENÇÃO OPERACIONAL somente para solicitações pendentes reais.
 
-Nenhuma logo oficial foi encontrada. Continua BES textual. Colocar PNGs oficiais em src/assets/brand/bes-logo-sidebar.png (compacto/transparente para fundo escuro) e src/assets/brand/bes-logo-full.png (completa). Brand.jsx aceita sidebar/full, conserva fallback se ausente/inválido e não cria retângulo branco nem aproximação da marca. Ver src/assets/brand/README.md. Suporte de imagem completa preparado, sem implementar login/documentos/relatórios.
+Nenhuma logo oficial foi encontrada. Continua BES textual. Colocar PNGs oficiais em src/assets/brand/bes-logo-sidebar.png (compacto/transparente para fundo escuro) e src/assets/brand/bes-logo-full.png (completa). Brand.jsx aceita sidebar/full, conserva fallback se ausente/inválido e não cria retângulo branco nem aproximação da marca. Ver src/assets/brand/README.md. Suporte de imagem completa disponível também no login; documentos e relatórios seguem o roadmap incremental.
 
 Testes desta rodada ampliam a suíte existente: pesquisas e combinações, quantidade/fracionamento, falha intermediária, resposta perdida após item recebido, cadastro de estoque zerado, entrada/saída reais e formulários operacionais a 1440/768/390px. Todas as gravações E2E são no H2 temporário da porta 8081. Após os testes, comparar visualmente Dashboard, Solicitações, Estoque, Movimentações e Produtos com capturas locais, incluindo formulários e estados.
 
@@ -141,7 +141,7 @@ Testes desta rodada ampliam a suíte existente: pesquisas e combinações, quant
 - Estoque mostra mínimo/máximo e situação Normal/Baixo/Zerado, com modal de configuração e filtro “Precisam de atenção”. Busca anterior e filtros continuam combinados. Saldo <= mínimo configurado é alerta; sugestão usa máximo - saldo ou fica ausente sem máximo. Limites não alteram saldo.
 - Dashboard acrescenta tabela compacta de alertas reais; link abre `/estoques?atencao=true`. Falha de carregamento apresenta erro e retry de leitura, sem números inventados.
 - `/transferencias`: busca por número/material/local/responsável, filtros origem/destino/produto via API, criação com catálogo e vários materiais, consulta de saldo e validações. Revisão confere novamente os saldos e exige confirmação explícita. Sucesso abre detalhes; “Ver movimentações” navega a `/movimentacoes?transferenciaId=...`, com vínculo de retorno.
-- Gravação de transferência é um POST atômico; resposta perdida/5xx impede repetição no rascunho e orienta conferir a listagem. Não há chave de idempotência persistida, edição/cancelamento/exclusão, PDF ou autenticação nesta rodada.
+- Gravação de transferência é um POST atômico; resposta perdida/5xx impede repetição no rascunho e orienta conferir a listagem. Não há chave de idempotência persistida, edição/cancelamento/exclusão, PDF no Bloco 2 original; autenticação foi adicionada depois na Security Baseline 2.
 - Estilos aprovados/Brand foram preservados. PNGs oficiais ainda ausentes: fallback textual e caminhos mantidos, sem logo criada.
 - Testes: 32 Node (19 anteriores + 13 novos), 20 Playwright (10 anteriores + 10 novos), além de 135 backend (91 anteriores + 44 novos). Usar H2 isolado pelo script existente; **não iniciar servidor de produção/MySQL para E2E**. Novos fluxos/capturas cobrem 1440/768/390px.
 
@@ -159,3 +159,9 @@ Atendimento sugere disponibilidade sem entregar automaticamente; operador ajusta
 `/solicitacoes/{id}/lista-separacao`: primeiro documento operacional, A4/print, template reutilizável `OperationalDocument`, campos de conferência e dados reais. `window.print()` permite impressão/salvar PDF pelo navegador; sem exportador PDF dedicado, comprovante ou QR. Rota e vínculo ao registro preparam acesso futuro, sem marcar RF212 concluído. Os PNGs oficiais ainda ausentes: fallback do documento **B&S Engenharia / Plataforma BES**, com `bes-logo-full.png` aceito no próximo build sem distorção. Sidebar preservada.
 
 Operação a 1440/768/390px, tabela rola internamente; não impõe papel. Testes de atendimento/necessidade, resposta perdida, double click, saldo alterado, histórico e impressão via mídia print/PDF local. **Usar vite preview + H2 isolado 8081**, nunca MySQL; manter VITE_API_URL para proxy apontando ao H2, com base de build `/api` para roteamento local dos testes. Artefatos de screenshot/trace/PDF em test-results são ignorados. Contratos e RFs: [API](../docs/api.md) e [Bloco 3](../docs/atendimento-solicitacoes.md).
+
+## Security Baseline 2 — acesso e testes reais
+
+A SPA exige login, consulta GET /auth/me e usa cookie HttpOnly/CSRF em memória, sem token no storage. /usuarios e ações administrativas dependem de permissões do backend. Ver [arquitetura e matriz](../docs/autenticacao-autorizacao.md). Para desenvolvimento HTTP de banco externo, usar explicitamente profile dev com DB_* externos; produção requer HTTPS/cookie Secure.
+
+Para Playwright isolado: na raiz, powershell -NoProfile -ExecutionPolicy Bypass -File frontend/scripts/start-backend-h2.ps1 -WithTestUsers. O flag usa fixtures fictícias de frontend/tests/security-users.json exclusivamente no H2 fixo; nunca produção. Em outro terminal, frontend: executar npm.cmd run build sem VITE_API_URL (SPA usa /api); depois definir VITE_API_URL para http://localhost:8081 somente no processo de preview e executar npm.cmd run preview -- --port 5173 --strictPort. O proxy preserva Host/Origin para a mesma origem. Aguardar HTTP 200 em http://localhost:8081/auth/csrf e http://localhost:5173/api/auth/csrf; endpoints operacionais anônimos retornam 401. Executar npm.cmd test, npm.cmd run test:e2e e npm.cmd audit. Não gravar cookies/senhas reais em arquivos storageState/test-results.

@@ -3,6 +3,8 @@ package br.com.almoxarifado.service;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import br.com.almoxarifado.exception.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class EstoqueService {
 
     private final EstoqueRepository repository;
@@ -26,16 +29,20 @@ public class EstoqueService {
         this.movimentacaoRepository = movimentacaoRepository;
         this.funcionarioRepository = funcionarioRepository;
     }
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
     public List<Estoque> listar() {
         return repository.findAll();
     }
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
     public Optional<Estoque> buscarPorId(Integer id) {
         return repository.findById(id);
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    @Auditar("ESTOQUE_CADASTRAR")
     public Estoque cadastrar(Estoque estoque) {
 
         if (estoque == null || estoque.getProduto() == null || estoque.getProduto().getId() == null
@@ -73,6 +80,8 @@ public class EstoqueService {
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    @Auditar("ESTOQUE_ENTRADAESTOQUE")
     public Estoque entradaEstoque(Integer produtoId, Integer almoxarifadoId, double quantidade, Integer solicitanteId, Integer responsavelId) {
         if (produtoId == null || almoxarifadoId == null || solicitanteId == null || responsavelId == null) {
             throw new IllegalArgumentException("Produto, almoxarifado, solicitante e responsável devem ser informados");
@@ -127,6 +136,8 @@ public class EstoqueService {
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    @Auditar("ESTOQUE_SAIDAESTOQUE")
     public Estoque saidaEstoque(
             Integer produtoId,
             Integer almoxarifadoId,
@@ -186,6 +197,7 @@ public class EstoqueService {
         return repository.save(estoque);
 
     }
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
     public List<Estoque> consultarPorProduto(Integer produtoId) {
         if (!produtoRepository.existsById(produtoId)) {
@@ -193,6 +205,7 @@ public class EstoqueService {
         }
         return repository.findByProdutoId(produtoId);
     }
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
     public List<Estoque> consultarPorAlmoxarifado(Integer almoxarifadoId) {
         if (!almoxarifadoRepository.existsById(almoxarifadoId)) {
@@ -200,6 +213,7 @@ public class EstoqueService {
         }
         return repository.findByAlmoxarifadoId(almoxarifadoId);
     }
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
     public Estoque consultarPorProdutoEAlmoxarifado(Integer produtoId, Integer almoxarifadoId) {
         return repository.findByProdutoIdAndAlmoxarifadoId(produtoId, almoxarifadoId)

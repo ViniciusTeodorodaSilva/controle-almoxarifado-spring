@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './security-support.js'
 const backend='http://localhost:8081'
 let sample
 async function call(request,path,options={}) {
@@ -97,7 +97,7 @@ test('erro HTTP, offline, vazio e página 404',async({page})=>{
  await page.route('**/api/produtos/busca*',route=>route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({mensagem:'Conflito de teste'})}))
  await page.goto('/produtos');await expect(page.getByText('Conflito de teste')).toBeVisible();await page.screenshot({path:'test-results/estado-erro.png',fullPage:true})
  await page.unroute('**/api/produtos/busca*')
- await page.route(/^http:\/\/localhost:5173\/api\//,route=>route.abort())
+ await page.route(/^http:\/\/localhost:5173\/api\//,route=>route.request().url().includes('/auth/') ? route.continue() : route.abort())
  await page.goto('/dashboard');await expect(page.getByRole('alert')).toContainText('Não foi possível conectar')
  await expect(page.getByText('Produtos cadastrados')).toHaveCount(0)
  await page.unroute(/^http:\/\/localhost:5173\/api\//)

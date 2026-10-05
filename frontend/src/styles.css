@@ -104,3 +104,11 @@ body:has(dialog[open]){overflow:hidden}
   a { color: inherit; text-decoration: none; }
   .badge { color: #172333; background: transparent; }
 }
+
+/* Authentication extends the approved BES visual language. */
+.login-page{min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--background,#f4f5f7)}
+.login-panel{width:min(100%,380px);padding:28px;border:1px solid #d9dfe7;border-radius:6px;background:#fff}
+.login-brand{padding-bottom:24px;border-bottom:1px solid #e4e8ed;margin-bottom:24px}.login-brand p{margin:5px 0 0;color:#667085;font-size:13px}
+.login-panel h1{font-size:24px;margin:0 0 20px}.login-panel form{display:grid;gap:10px}.login-panel label{font-weight:600;font-size:13px}.login-panel input{width:100%;min-height:40px}.login-panel .btn{margin-top:12px;width:100%}.login-error{font-size:13px;color:#a61b1b}
+.user-menu{display:flex;align-items:center;gap:12px;min-width:0}.user-menu>span{display:grid;max-width:200px}.user-menu strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.user-menu small{font-size:10px;color:#667085}.table-actions{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:600px){.login-page{padding:16px}.login-panel{padding:22px}.user-menu{gap:4px}.user-menu>span{max-width:100px}.user-menu .btn{padding:6px}.breadcrumb{font-size:11px}}

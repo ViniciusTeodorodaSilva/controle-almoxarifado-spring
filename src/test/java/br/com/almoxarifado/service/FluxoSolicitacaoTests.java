@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 
+@org.springframework.security.test.context.support.WithMockUser(authorities={"USUARIO_GERENCIAR","AUDITORIA_LER","PRODUTO_LER","PRODUTO_GERENCIAR","CATEGORIA_LER","CATEGORIA_GERENCIAR","UNIDADE_LER","UNIDADE_GERENCIAR","ESTOQUE_LER","ESTOQUE_MOVIMENTAR","ESTOQUE_TRANSFERIR","ESTOQUE_CONFIGURAR","SOLICITACAO_LER","SOLICITACAO_CRIAR","SOLICITACAO_APROVAR","SOLICITACAO_REJEITAR","SOLICITACAO_SEPARAR","SOLICITACAO_ATENDER","NECESSIDADE_COMPRA_LER","NECESSIDADE_COMPRA_CRIAR","MOVIMENTACAO_LER","FUNCIONARIO_LER","FUNCIONARIO_GERENCIAR","ALMOXARIFADO_LER","ALMOXARIFADO_GERENCIAR"})
 @SpringBootTest
 @ActiveProfiles("test")
 class FluxoSolicitacaoTests {
@@ -310,7 +311,7 @@ class FluxoSolicitacaoTests {
     }
 
     private int executarConcorrentes(Runnable primeira, Runnable segunda) throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        ExecutorService executor = new org.springframework.security.concurrent.DelegatingSecurityContextExecutorService(Executors.newFixedThreadPool(2));
         CountDownLatch iniciar = new CountDownLatch(1);
         try {
             Future<Boolean> a = executor.submit(() -> executar(iniciar, primeira));

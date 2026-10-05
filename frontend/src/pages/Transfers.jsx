@@ -1,3 +1,4 @@
+import { Can, useAuth } from '../auth/AuthContext'
 import { useCallback, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Eye, Plus, RefreshCw, Search } from 'lucide-react'

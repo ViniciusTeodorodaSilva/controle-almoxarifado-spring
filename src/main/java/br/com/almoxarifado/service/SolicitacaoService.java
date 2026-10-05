@@ -3,6 +3,8 @@ package br.com.almoxarifado.service;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import br.com.almoxarifado.exception.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ import java.util.TreeMap;
 import java.util.LinkedHashMap;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class SolicitacaoService {
 
     private final SolicitacaoRepository repository;
@@ -33,14 +36,18 @@ public class SolicitacaoService {
         this.estoqueRepository = estoqueRepository;
         this.movimentacaoRepository = movimentacaoRepository;
     }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
 
     public List<Solicitacao> listar() {
         return repository.findAll();
     }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
 
     public Optional<Solicitacao> buscarPorId(Integer id) {
         return repository.findById(id);
     }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_CRIAR')")
+    @Auditar("SOLICITACAO_CADASTRAR")
 
     public Solicitacao cadastrar(
             Integer solicitanteId,
@@ -69,6 +76,8 @@ public class SolicitacaoService {
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_CRIAR')")
+    @Auditar("SOLICITACAO_ADICIONARITEM")
     public ItemSolicitacao adicionarItem(
             Integer solicitacaoId,
             Integer produtoId,
@@ -102,6 +111,8 @@ public class SolicitacaoService {
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_APROVAR')")
+    @Auditar("SOLICITACAO_APROVAR")
     public Solicitacao aprovar(Integer solicitacaoId, Integer responsavelId) {
         Solicitacao solicitacao = buscarPendenteParaAtualizacao(solicitacaoId);
         if (responsavelId == null) {
@@ -141,6 +152,8 @@ public class SolicitacaoService {
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_REJEITAR')")
+    @Auditar("SOLICITACAO_REJEITAR")
     public Solicitacao rejeitar(Integer solicitacaoId) {
         Solicitacao solicitacao = buscarPendenteParaAtualizacao(solicitacaoId);
         solicitacao.getItens().size();
@@ -159,12 +172,14 @@ public class SolicitacaoService {
         }
         return solicitacao;
     }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
     public List<Solicitacao> consultarPorStatus(StatusSolicitacao status) {
         if (status == null) {
             throw new IllegalArgumentException("Status deve ser informado");
         }
         return repository.findByStatus(status);
     }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
 
     public List<Solicitacao> consultarPorFuncionario(Integer funcionarioId) {
         if (!funcionarioRepository.existsById(funcionarioId)) {
@@ -172,6 +187,7 @@ public class SolicitacaoService {
         }
         return repository.findBySolicitanteId(funcionarioId);
     }
+    @PreAuthorize("@autorizacao.permite('MOVIMENTACAO_LER')")
 
     public List<Movimentacao> consultarMovimentacoes(Integer solicitacaoId) {
         if (!repository.existsById(solicitacaoId)) {

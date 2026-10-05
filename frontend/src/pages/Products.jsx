@@ -1,3 +1,4 @@
+import { Can, useAuth } from '../auth/AuthContext'
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Pencil, Search } from 'lucide-react'
 import { api } from '../api/client'
@@ -10,7 +11,7 @@ export default function Products(){
  const loader=useCallback(signal=>api.searchProducts({termo:debounced,ativo:active,categoriaId:category},signal),[debounced,active,category])
  const resource=useResource(loader)
  const categories=useResource(useCallback(signal=>api.list('categorias',null,signal),[]))
- return <><PageHeader eyebrow="CATÁLOGO MESTRE" title="Produtos" description="Catálogo mestre dos materiais utilizados pela operação."><button className="btn" onClick={()=>{setNotice('');setEditing({nome:'',ativo:true})}}><Plus size={17}/>Novo produto</button></PageHeader><Notice>{notice}</Notice><Card>
+ return <><PageHeader eyebrow="CATÁLOGO MESTRE" title="Produtos" description="Catálogo mestre dos materiais utilizados pela operação."><Can permission="PRODUTO_GERENCIAR"><button className="btn" onClick={()=>{setNotice('');setEditing({nome:'',ativo:true})}}><Plus size={17}/>Novo produto</button></Can></PageHeader><Notice>{notice}</Notice><Card>
   <div className="filters"><div className="search-input"><Search size={17}/><input aria-label="Buscar produtos" value={term} onChange={e=>setTerm(e.target.value)} placeholder="Código, nome, descrição ou especificação…"/></div><select aria-label="Filtrar categoria" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todas as categorias</option>{(categories.data||[]).map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select><select aria-label="Filtrar situação" value={active} onChange={e=>setActive(e.target.value)}><option value="">Todas as situações</option><option value="true">Ativos</option><option value="false">Inativos</option></select></div>
   {categories.error&&<Notice error>Filtro de categoria indisponível: {categories.error.message}</Notice>}
   <ResourceView resource={resource}>{rows=><DataTable rows={rows} columns={[
@@ -19,7 +20,7 @@ export default function Products(){
    {key:'categoria',label:'Categoria',render:p=>p.categoriaMaterial?.nome||p.categoria||'—'},
    {key:'unidade',label:'Unidade',render:p=>p.unidadeMedidaConfigurada?.sigla||p.unidadeMedida||'—'},
    {key:'especificacaoTecnica',label:'Especificação'},{key:'ativo',label:'Situação',render:p=><Badge value={p.ativo}/>},
-   {key:'action',label:'Ações',render:p=><button className="btn text" onClick={()=>{setNotice('');setEditing(p)}}><Pencil size={15}/>Editar</button>}
+   {key:'action',label:'Ações',render:p=><Can permission="PRODUTO_GERENCIAR"><button className="btn text" onClick={()=>{setNotice('');setEditing(p)}}><Pencil size={15}/>Editar</button></Can>}
   ]}/>}</ResourceView></Card>
   {editing&&<ProductForm initial={editing} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setNotice('Produto salvo com sucesso.');resource.reload()}}/>}
  </>

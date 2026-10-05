@@ -1,3 +1,5 @@
+import { Can } from '../auth/AuthContext'
+import { registryPermission } from '../auth/permissions'
 import { useCallback, useState } from 'react'
 import { Plus, Pencil, Search } from 'lucide-react'
 import { api } from '../api/client'
@@ -17,8 +19,8 @@ export default function Registries({ name }) {
   const [editing,setEditing] = useState(null), [notice,setNotice] = useState('')
   const columns = config.fields.map(([key,label,type])=>({key,label,render:row=>type==='checkbox' ? (row[key]?'Sim':'Não') : row[key] || '—'}))
   if(config.active) columns.push({key:'ativo',label:'Situação',render:row=><Badge value={row.ativo}/>})
-  columns.push({key:'action',label:'Ações',render:row=><button className="btn text" onClick={()=>{setNotice('');setEditing({...row})}}><Pencil size={15}/>Editar</button>})
-  return <><PageHeader eyebrow={config.active?'CATÁLOGO':'ESTRUTURA'} title={config.title} description={config.description}><button className="btn" onClick={()=>{setNotice('');setEditing({ativo:true,permiteFracionamento:false})}}><Plus size={17}/>Novo cadastro</button></PageHeader><Notice>{notice}</Notice>
+  columns.push({key:'action',label:'Ações',render:row=><Can permission={registryPermission[name]}><button className="btn text" onClick={()=>{setNotice('');setEditing({...row})}}><Pencil size={15}/>Editar</button></Can>})
+  return <><PageHeader eyebrow={config.active?'CATÁLOGO':'ESTRUTURA'} title={config.title} description={config.description}><Can permission={registryPermission[name]}><button className="btn" onClick={()=>{setNotice('');setEditing({ativo:true,permiteFracionamento:false})}}><Plus size={17}/>Novo cadastro</button></Can></PageHeader><Notice>{notice}</Notice>
     <Card><div className="filters"><div className="search-input"><Search size={17}/><input aria-label="Buscar registros" placeholder="Buscar por nome…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{config.active && <select aria-label="Filtrar situação" value={active} onChange={e=>setActive(e.target.value)}><option value="">Todas as situações</option><option value="true">Ativos</option><option value="false">Inativos</option></select>}</div>
     <ResourceView resource={resource}>{rows=><DataTable columns={columns} rows={rows.filter(row=>(row.nome+' '+(row.sigla||'')+' '+(row.matricula||'')).toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))}/>}</ResourceView></Card>
     {editing && <RegistryForm name={name} config={config} initial={editing} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setNotice('Cadastro salvo com sucesso.');resource.reload()}}/>}

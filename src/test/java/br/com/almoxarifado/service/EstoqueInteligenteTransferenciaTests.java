@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+@org.springframework.security.test.context.support.WithMockUser(authorities={"USUARIO_GERENCIAR","AUDITORIA_LER","PRODUTO_LER","PRODUTO_GERENCIAR","CATEGORIA_LER","CATEGORIA_GERENCIAR","UNIDADE_LER","UNIDADE_GERENCIAR","ESTOQUE_LER","ESTOQUE_MOVIMENTAR","ESTOQUE_TRANSFERIR","ESTOQUE_CONFIGURAR","SOLICITACAO_LER","SOLICITACAO_CRIAR","SOLICITACAO_APROVAR","SOLICITACAO_REJEITAR","SOLICITACAO_SEPARAR","SOLICITACAO_ATENDER","NECESSIDADE_COMPRA_LER","NECESSIDADE_COMPRA_CRIAR","MOVIMENTACAO_LER","FUNCIONARIO_LER","FUNCIONARIO_GERENCIAR","ALMOXARIFADO_LER","ALMOXARIFADO_GERENCIAR"})
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:bes-bloco2;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000")
 @AutoConfigureMockMvc @ActiveProfiles("test")
 class EstoqueInteligenteTransferenciaTests {
@@ -60,7 +61,7 @@ class EstoqueInteligenteTransferenciaTests {
     @Test void estoqueInexistenteNosLimites() { assertThrows(RecursoNaoEncontradoException.class, () -> limites.configurar(999999, new LimitesEstoqueInput(0.0, 1.0))); }
     @Test void cadastroLegadoNaoContornaValidacaoDeLimites() { Estoque e = new Estoque(); e.setProduto(produto); e.setAlmoxarifado(local("Extra")); e.setEstoqueMinimo(-1.0); assertThrows(IllegalArgumentException.class, () -> estoqueService.cadastrar(e)); }
     @Test void contratosHttpLimitesEAlertasSemEntidadesCompletas() throws Exception {
-        mvc.perform(put("/estoques/{id}/limites", saldoOrigem.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"estoqueMinimo\":10,\"estoqueMaximo\":20,\"quantidade\":999}"))
+        mvc.perform(put("/estoques/{id}/limites", saldoOrigem.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"estoqueMinimo\":10,\"estoqueMaximo\":20,\"quantidade\":999}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.saldoAtual").value(10)).andExpect(jsonPath("$.estoqueMinimo").value(10));
         mvc.perform(get("/estoques/alertas")).andExpect(status().isOk()).andExpect(jsonPath("$[0].quantidadeSugerida").value(10)).andExpect(jsonPath("$[0].produto").value("Parafuso"));
         mvc.perform(get("/estoques/reposicoes")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
@@ -89,17 +90,17 @@ class EstoqueInteligenteTransferenciaTests {
     @Test void filtrosTransferenciaE404() { transferir(produto, 1); assertEquals(1, service.listar(origem.getId(), destino.getId(), produto.getId()).size()); assertTrue(service.listar(destino.getId(), origem.getId(), null).isEmpty()); assertThrows(RecursoNaoEncontradoException.class, () -> service.buscar(999999)); assertThrows(RecursoNaoEncontradoException.class, () -> service.listar(null, null, 999999)); }
     @Test void contratosHttpTransferencia() throws Exception {
         String json = "{\"origemId\":" + origem.getId() + ",\"destinoId\":" + destino.getId() + ",\"responsavelId\":" + responsavel.getId() + ",\"itens\":[{\"produtoId\":" + produto.getId() + ",\"quantidade\":2}]}";
-        mvc.perform(post("/transferencias").contentType(MediaType.APPLICATION_JSON).content(json)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CONCLUIDA")).andExpect(jsonPath("$.itens[0].produto").value("Parafuso"));
+        mvc.perform(post("/transferencias").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content(json)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CONCLUIDA")).andExpect(jsonPath("$.itens[0].produto").value("Parafuso"));
         Integer id = transferencias.findAll().get(0).getId();
         mvc.perform(get("/transferencias/{id}", id)).andExpect(status().isOk()).andExpect(jsonPath("$.responsavel.matricula").doesNotExist());
         mvc.perform(get("/transferencias/{id}/movimentacoes", id)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2)).andExpect(jsonPath("$[0].transferenciaId").value(id));
-        mvc.perform(post("/transferencias").contentType(MediaType.APPLICATION_JSON).content("{\"origemId\":0,\"itens\":[]}")).andExpect(status().isBadRequest());
+        mvc.perform(post("/transferencias").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"origemId\":0,\"itens\":[]}")).andExpect(status().isBadRequest());
     }
     @Test void concorrenciaMesmoSaldoNaoFicaNegativo() throws Exception { var results = concorrentes(() -> transferir(produto, 7), () -> transferir(produto, 7)); assertEquals(1, results.stream().filter(Boolean::booleanValue).count()); assertEquals(3, saldo(produto, origem)); assertEquals(9, saldo(produto, destino)); assertEquals(1, transferencias.count()); }
     @Test void transferenciasInversasSemDeadlock() throws Exception { saldoDestino.setQuantidade(10); estoques.save(saldoDestino); var results = concorrentes(() -> transferir(produto, 2), () -> service.criar(new TransferenciaInput(destino.getId(), origem.getId(), responsavel.getId(), null, List.of(item(produto, 2))))); assertTrue(results.stream().allMatch(Boolean::booleanValue)); assertEquals(10, saldo(produto, origem)); assertEquals(10, saldo(produto, destino)); assertEquals(4, movimentos.count()); }
     @Test void transferenciaESaidaManualDisputamMesmoSaldo() throws Exception { var results = concorrentes(() -> transferir(produto, 7), () -> estoqueService.saidaEstoque(produto.getId(), origem.getId(), 7, responsavel.getId(), responsavel.getId())); assertEquals(1, results.stream().filter(Boolean::booleanValue).count()); assertEquals(3, saldo(produto, origem)); }
     private List<Boolean> concorrentes(Callable<?> a, Callable<?> b) throws Exception {
-        ExecutorService pool = Executors.newFixedThreadPool(2); CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = new org.springframework.security.concurrent.DelegatingSecurityContextExecutorService(Executors.newFixedThreadPool(2)); CountDownLatch start = new CountDownLatch(1);
         try { var fa = pool.submit(() -> executar(a, start)); var fb = pool.submit(() -> executar(b, start)); start.countDown(); return List.of(fa.get(20, TimeUnit.SECONDS), fb.get(20, TimeUnit.SECONDS)); }
         finally { pool.shutdownNow(); }
     }

@@ -3,22 +3,29 @@ import br.com.almoxarifado.model.CategoriaMaterial;
 import br.com.almoxarifado.repository.*;
 import br.com.almoxarifado.exception.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class CategoriaMaterialService {
     private final CategoriaMaterialRepository repository;
     public CategoriaMaterialService(CategoriaMaterialRepository repository) {
         this.repository = repository;
     }
+    @PreAuthorize("@autorizacao.permite('CATEGORIA_LER')")
     public List<CategoriaMaterial> listar(Boolean ativo) {
         return ativo == null ? repository.findAll() : repository.findByAtivo(ativo);
     }
+    @PreAuthorize("@autorizacao.permite('CATEGORIA_LER')")
     public CategoriaMaterial buscar(Integer id) {
         return repository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("CategoriaMaterial não encontrado"));
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('CATEGORIA_GERENCIAR')")
+    @Auditar("CATEGORIAMATERIAL_CADASTRAR")
     public CategoriaMaterial cadastrar(CategoriaMaterial dados) {
         if (dados == null || dados.getId() != null) throw new IllegalArgumentException("Cadastro não aceita ID");
         validar(dados);
@@ -26,6 +33,8 @@ public class CategoriaMaterialService {
         return repository.saveAndFlush(dados);
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('CATEGORIA_GERENCIAR')")
+    @Auditar("CATEGORIAMATERIAL_ATUALIZAR")
     public CategoriaMaterial atualizar(Integer id, CategoriaMaterial dados) {
         if (dados == null || (dados.getId() != null && !id.equals(dados.getId()))) throw new IllegalArgumentException("ID inválido");
         validar(dados);

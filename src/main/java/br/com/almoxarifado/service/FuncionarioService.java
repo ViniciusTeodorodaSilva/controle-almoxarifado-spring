@@ -3,6 +3,8 @@ package br.com.almoxarifado.service;
 import br.com.almoxarifado.model.Funcionario;
 import br.com.almoxarifado.repository.FuncionarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import br.com.almoxarifado.exception.*;
 
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class FuncionarioService {
 
     private final FuncionarioRepository repository;
@@ -17,14 +20,18 @@ public class FuncionarioService {
     public FuncionarioService(FuncionarioRepository repository) {
         this.repository = repository;
     }
+    @PreAuthorize("@autorizacao.permite('FUNCIONARIO_LER')")
 
     public List<Funcionario> listar() {
         return repository.findAll();
     }
+    @PreAuthorize("@autorizacao.permite('FUNCIONARIO_LER')")
 
     public Optional<Funcionario> buscarPorId(Integer id) {
         return repository.findById(id);
     }
+    @PreAuthorize("@autorizacao.permite('FUNCIONARIO_GERENCIAR')")
+    @Auditar("FUNCIONARIO_CADASTRAR")
 
     public Funcionario cadastrar(Funcionario funcionario) {
         if (funcionario == null || funcionario.getId() != null) {
@@ -42,6 +49,8 @@ public class FuncionarioService {
         return repository.save(funcionario);
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('FUNCIONARIO_GERENCIAR')")
+    @Auditar("FUNCIONARIO_ATUALIZAR")
     public Funcionario atualizar(Integer id, Funcionario dados) {
         if (dados == null || dados.getNome() == null || dados.getNome().isBlank()) {
             throw new IllegalArgumentException("Nome deve ser informado");

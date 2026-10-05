@@ -2,7 +2,7 @@
 
 Fonte funcional oficial: [Documentação Mestre BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx), RF001–RF218. Planejamento e regras de cobertura: [índice de documentação](README.md). Este documento descreve os contratos implementados; não implica conclusão de todo o roadmap.
 
-Backend REST, base URL local padrão `http://localhost:8080`. IDs são inteiros. Respostas de sucesso preservam o contrato atual (HTTP 200); cadastros/atualizações recebem JSON e operações de estoque/solicitação usam query parameters. Não há autenticação nesta rodada. Não há paginação nem exclusão física.
+Backend REST, base URL local padrão `http://localhost:8080`. IDs são inteiros. Respostas de sucesso preservam o contrato atual (HTTP 200); cadastros/atualizações recebem JSON e operações de estoque/solicitação usam query parameters. As operações exigem sessão e permissões da Security Baseline 2. A auditoria é paginada; os endpoints operacionais anteriores não têm paginação ou exclusão física.
 
 ## Todos os endpoints
 
@@ -214,3 +214,7 @@ Documento frontend `/solicitacoes/{id}/lista-separacao` é HTML A4 imprimível, 
 ## Configuração segura do backend
 
 Fora do profile `test`, `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` são obrigatórias e externas. Consulte [Security Baseline 1](security.md) para desenvolvimento, testes, produção e rotação. A API e os contratos operacionais permanecem iguais.
+
+## Autenticação e autorização — Security Baseline 2
+
+Todos os endpoints operacionais descritos neste documento agora exigem sessão e permissão. Consultar [contratos e matriz](autenticacao-autorizacao.md#endpoints-novos). GET /auth/csrf e POST /auth/login são públicos; toda escrita exige X-CSRF-TOKEN. Novos: GET /auth/me, POST /auth/logout, GET/POST /usuarios, PUT /usuarios/{id}, PUT /usuarios/{id}/senha e GET /auditoria?pagina=0&tamanho=30. Não há DELETE de usuário/auditoria. 401 = sessão ausente/inválida; 403 = permissão/CSRF; 429 = limite de login. Contratos operacionais anteriores permanecem iguais.

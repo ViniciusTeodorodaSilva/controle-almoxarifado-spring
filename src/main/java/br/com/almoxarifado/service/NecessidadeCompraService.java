@@ -4,9 +4,12 @@ import br.com.almoxarifado.exception.*;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class NecessidadeCompraService {
     private final NecessidadeCompraRepository necessidades;
     private final ItemSolicitacaoRepository itens;
@@ -20,6 +23,8 @@ public class NecessidadeCompraService {
         this.necessidades=necessidades;this.itens=itens;this.operacoes=operacoes;this.produtos=produtos;this.locais=locais;this.solicitacoes=solicitacoes;this.estoques=estoques;
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_CRIAR')")
+    @Auditar("NECESSIDADECOMPRA_CRIAR")
     public NecessidadeCompraResponse criar(NecessidadeCompraInput input,String chave) {
         AtendimentoSolicitacaoService.validarChave(chave);
         if(input==null||input.itemSolicitacaoId()==null||input.itemSolicitacaoId()<=0) throw new IllegalArgumentException("Item deve ser informado");
@@ -54,6 +59,7 @@ public class NecessidadeCompraService {
         return resposta(necessidades.saveAndFlush(n));
     }
     @Transactional(readOnly=true)
+    @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_LER')")
     public List<NecessidadeCompraResponse> listar(StatusNecessidadeCompra status,Integer produtoId,Integer almoxarifadoId,Integer solicitacaoId) {
         if(produtoId!=null&&!produtos.existsById(produtoId)) throw new RecursoNaoEncontradoException("Produto não encontrado");
         if(almoxarifadoId!=null&&!locais.existsById(almoxarifadoId)) throw new RecursoNaoEncontradoException("Almoxarifado não encontrado");
@@ -61,6 +67,7 @@ public class NecessidadeCompraService {
         return necessidades.filtrar(status,produtoId,almoxarifadoId,solicitacaoId).stream().map(this::resposta).toList();
     }
     @Transactional(readOnly=true)
+    @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_LER')")
     public NecessidadeCompraResponse buscar(Integer id) { return resposta(necessidades.findById(id).orElseThrow(()->new RecursoNaoEncontradoException("Necessidade não encontrada"))); }
     private NecessidadeCompraResponse resposta(NecessidadeCompra n) {
         return new NecessidadeCompraResponse(n.getId(),n.getItemSolicitacao().getId(),n.getSolicitacao().getId(),AtendimentoSolicitacaoService.produto(n.getProduto()),

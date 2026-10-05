@@ -17,6 +17,8 @@ import java.time.Instant;
 
 @RestControllerAdvice
 public class RegraNegocioExceptionHandler extends ResponseEntityExceptionHandler {
+    private final br.com.almoxarifado.security.AuditoriaService auditoria;
+    public RegraNegocioExceptionHandler(br.com.almoxarifado.security.AuditoriaService auditoria) { this.auditoria = auditoria; }
     private static final Logger LOG = LoggerFactory.getLogger(RegraNegocioExceptionHandler.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -39,9 +41,15 @@ public class RegraNegocioExceptionHandler extends ResponseEntityExceptionHandler
         return resposta(HttpStatus.CONFLICT, "Conflito de integridade ou operação concorrente", request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> negar(org.springframework.security.access.AccessDeniedException exception, HttpServletRequest request) {
+        auditoria.resultado("ACESSO_NEGADO", "NEGADO");
+        return resposta(HttpStatus.FORBIDDEN, "Operacao nao autorizada", request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> tratarInesperado(Exception exception, HttpServletRequest request) {
-        LOG.error("Erro interno em {}", request.getRequestURI(), exception);
+        LOG.error("Erro interno ao processar requisicao; consulte o requestId para correlacao");
         return resposta(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno ao processar a requisição", request.getRequestURI());
     }
 

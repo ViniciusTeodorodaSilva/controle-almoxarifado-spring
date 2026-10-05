@@ -1,3 +1,4 @@
+import { Can, useAuth } from '../auth/AuthContext'
 import RequestDetails from './RequestDetails'
 import { requestStatuses } from '../utils/fulfillment'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -25,8 +26,8 @@ export function Stocks() {
   const refs = useResource(useCallback(signal => Promise.all(['produtos', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
   return <><PageHeader eyebrow="OPERAÇÃO" title="Estoque" description="Saldos disponíveis por produto e almoxarifado.">
     <button className="btn secondary" onClick={resource.reload} aria-label="Atualizar estoque"><RefreshCw size={16}/><span className="refresh-label">Atualizar</span></button>
-    <button className="btn" onClick={() => { setNotice(''); setOperation('entrada') }}><Plus size={16}/>Registrar entrada</button>
-    <button className="btn secondary" onClick={() => { setNotice(''); setOperation('saida') }}>Registrar saída</button>
+    <Can permission="ESTOQUE_MOVIMENTAR"><button className="btn" onClick={() => { setNotice(''); setOperation('entrada') }}><Plus size={16}/>Registrar entrada</button></Can>
+    <Can permission="ESTOQUE_MOVIMENTAR"><button className="btn secondary" onClick={() => { setNotice(''); setOperation('saida') }}>Registrar saída</button></Can>
   </PageHeader><Notice>{notice}</Notice><Card><div className="filters">
     <SearchInput label="Pesquisar estoque" placeholder="Código, nome ou descrição do produto…" value={term} onChange={setTerm}/>
     <select aria-label="Filtrar produto" value={product} onChange={event => setProduct(event.target.value)}><option value="">Todos os produtos</option>{nameOptions(refs.data?.[0])}</select>
@@ -43,7 +44,7 @@ export function Stocks() {
     { key: 'maximo', label: 'Máximo', render: stock => stock.estoqueMaximo == null ? '—' : quantity(stock.estoqueMaximo) },
     { key: 'situacao', label: 'Situação', render: stock => <Badge value={stockSituation(stock)}/> },
     ...(attention ? [{ key: 'reposicao', label: 'Reposição sugerida', render: stock => { const value = alerts.data?.find(alert => alert.estoqueId === stock.id)?.quantidadeSugerida; return value == null ? '—' : quantity(value) } }] : []),
-    { key: 'acoes', label: 'Ações', render: stock => <button className="btn text" onClick={() => { setNotice(''); setLimits(stock) }}>Configurar limites</button> }
+    { key: 'acoes', label: 'Ações', render: stock => <Can permission="ESTOQUE_CONFIGURAR"><button className="btn text" onClick={() => { setNotice(''); setLimits(stock) }}>Configurar limites</button></Can> }
   ]}/>}</ResourceView></Card>
   {limits && <StockLimitsForm stock={limits} onClose={() => setLimits(null)} onSaved={message => { setLimits(null); setNotice(message); resource.reload(); alerts.reload() }}/>}
   {operation && <StockMovementForm type={operation} onClose={() => setOperation(null)} onSaved={message => { setOperation(null); setNotice(message); resource.reload(); alerts.reload() }} onChanged={() => { resource.reload(); alerts.reload() }}/>}

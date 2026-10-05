@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@org.springframework.security.test.context.support.WithMockUser(authorities={"USUARIO_GERENCIAR","AUDITORIA_LER","PRODUTO_LER","PRODUTO_GERENCIAR","CATEGORIA_LER","CATEGORIA_GERENCIAR","UNIDADE_LER","UNIDADE_GERENCIAR","ESTOQUE_LER","ESTOQUE_MOVIMENTAR","ESTOQUE_TRANSFERIR","ESTOQUE_CONFIGURAR","SOLICITACAO_LER","SOLICITACAO_CRIAR","SOLICITACAO_APROVAR","SOLICITACAO_REJEITAR","SOLICITACAO_SEPARAR","SOLICITACAO_ATENDER","NECESSIDADE_COMPRA_LER","NECESSIDADE_COMPRA_CRIAR","MOVIMENTACAO_LER","FUNCIONARIO_LER","FUNCIONARIO_GERENCIAR","ALMOXARIFADO_LER","ALMOXARIFADO_GERENCIAR"})
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:bes-api;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -72,7 +73,7 @@ class BackendOperacionalTests {
 
     @Test
     void atualizaProdutoSemTrocarId() throws Exception {
-        mvc.perform(put("/produtos/{id}", produto.getId()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/produtos/{id}", produto.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nome\":\"Luva atualizada\",\"descricao\":\"Proteção\",\"unidadeMedida\":\"UN\",\"categoria\":\"EPI\",\"tipoControle\":\"CONSUMO\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(produto.getId()))
                 .andExpect(jsonPath("$.nome").value("Luva atualizada"));
@@ -85,7 +86,7 @@ class BackendOperacionalTests {
 
     @Test
     void atualizaFuncionarioSemTrocarId() throws Exception {
-        mvc.perform(put("/funcionarios/{id}", funcionario.getId()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/funcionarios/{id}", funcionario.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nome\":\"Nome atualizado\",\"matricula\":\"BES-002\",\"funcao\":\"Almoxarife\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(funcionario.getId()));
         Funcionario atualizado = funcionarios.findById(funcionario.getId()).orElseThrow();
@@ -96,7 +97,7 @@ class BackendOperacionalTests {
 
     @Test
     void atualizaAlmoxarifadoSemTrocarId() throws Exception {
-        mvc.perform(put("/almoxarifados/{id}", almoxarifado.getId()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/almoxarifados/{id}", almoxarifado.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nome\":\"Central atualizada\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(almoxarifado.getId()));
         assertEquals("Central atualizada", almoxarifados.findById(almoxarifado.getId()).orElseThrow().getNome());
@@ -107,7 +108,7 @@ class BackendOperacionalTests {
         String[] recursos = {"produtos", "funcionarios", "almoxarifados"};
         Integer[] ids = {produto.getId(), funcionario.getId(), almoxarifado.getId()};
         for (int i = 0; i < recursos.length; i++) {
-            mvc.perform(put("/" + recursos[i] + "/" + ids[i]).contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(put("/" + recursos[i] + "/" + ids[i]).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"id\":2147483647,\"nome\":\"Alterado\",\"matricula\":\"BES-002\"}"))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
         }
@@ -121,28 +122,28 @@ class BackendOperacionalTests {
         String[] recursos = {"produtos", "funcionarios", "almoxarifados"};
         Integer[] ids = {produto.getId(), funcionario.getId(), almoxarifado.getId()};
         for (int i = 0; i < recursos.length; i++) {
-            mvc.perform(post("/" + recursos[i]).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\" \"}"))
+            mvc.perform(post("/" + recursos[i]).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\" \"}"))
                     .andExpect(status().isBadRequest());
-            mvc.perform(put("/" + recursos[i] + "/" + ids[i]).contentType(MediaType.APPLICATION_JSON).content("{}"))
+            mvc.perform(put("/" + recursos[i] + "/" + ids[i]).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                     .andExpect(status().isBadRequest());
         }
     }
 
     @Test
     void funcionarioExigeMatriculaNoPostEPut() throws Exception {
-        mvc.perform(post("/funcionarios").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\"}"))
+        mvc.perform(post("/funcionarios").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\"}"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(put("/funcionarios/{id}", funcionario.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\"}"))
+        mvc.perform(put("/funcionarios/{id}", funcionario.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void cadastrosNovosContinuamFuncionando() throws Exception {
-        mvc.perform(post("/produtos").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Máscara\"}"))
+        mvc.perform(post("/produtos").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Máscara\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").isNumber());
-        mvc.perform(post("/funcionarios").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\",\"matricula\":\"BES-002\"}"))
+        mvc.perform(post("/funcionarios").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Novo\",\"matricula\":\"BES-002\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").isNumber());
-        mvc.perform(post("/almoxarifados").contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Secundário\"}"))
+        mvc.perform(post("/almoxarifados").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Secundário\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").isNumber());
         assertEquals(2, produtos.count());
         assertEquals(2, funcionarios.count());
@@ -152,7 +153,7 @@ class BackendOperacionalTests {
     @Test
     void putInexistenteRetorna404() throws Exception {
         for (String recurso : new String[]{"produtos", "funcionarios", "almoxarifados"}) {
-            mvc.perform(put("/" + recurso + "/2147483647").contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(put("/" + recurso + "/2147483647").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"nome\":\"Válido\",\"matricula\":\"BES-002\"}"))
                     .andExpect(status().isNotFound());
         }
@@ -161,9 +162,9 @@ class BackendOperacionalTests {
     @Test
     void cadastroDeEstoqueZeradoEDuplicidade409() throws Exception {
         String json = estoqueJson(0);
-        mvc.perform(post("/estoques").contentType(MediaType.APPLICATION_JSON).content(json))
+        mvc.perform(post("/estoques").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.quantidade").value(0));
-        mvc.perform(post("/estoques").contentType(MediaType.APPLICATION_JSON).content(json))
+        mvc.perform(post("/estoques").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.path").value("/estoques"));
         assertEquals(1, estoques.count());
@@ -171,7 +172,7 @@ class BackendOperacionalTests {
 
     @Test
     void cadastroComSaldoArbitrarioRetorna400() throws Exception {
-        mvc.perform(post("/estoques").contentType(MediaType.APPLICATION_JSON).content(estoqueJson(10)))
+        mvc.perform(post("/estoques").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content(estoqueJson(10)))
                 .andExpect(status().isBadRequest());
         assertEquals(0, estoques.count());
         assertEquals(0, movimentacoes.count());
@@ -180,7 +181,7 @@ class BackendOperacionalTests {
     @Test
     void aprovaViaApiSemGerarMovimentacao() throws Exception {
         Solicitacao solicitacao = prepararSolicitacao();
-        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).param("responsavelId", funcionario.getId().toString()))
+        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", funcionario.getId().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APROVADA"))
                 .andExpect(jsonPath("$.itens[0].quantidade").value(2));
         mvc.perform(get("/solicitacoes/{id}/movimentacoes", solicitacao.getId()))
@@ -191,9 +192,9 @@ class BackendOperacionalTests {
     void aprovacaoDuplicadaEItemAposAprovacaoRetornam409() throws Exception {
         Solicitacao solicitacao = prepararSolicitacao();
         solicitacaoService.aprovar(solicitacao.getId(), funcionario.getId());
-        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).param("responsavelId", funcionario.getId().toString()))
+        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", funcionario.getId().toString()))
                 .andExpect(status().isConflict());
-        mvc.perform(post("/solicitacoes/{id}/itens", solicitacao.getId()).param("produtoId", produto.getId().toString()).param("quantidade", "1"))
+        mvc.perform(post("/solicitacoes/{id}/itens", solicitacao.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("produtoId", produto.getId().toString()).param("quantidade", "1"))
                 .andExpect(status().isConflict());
         assertEquals(10, estoques.findAll().get(0).getQuantidade());
     }
@@ -201,7 +202,7 @@ class BackendOperacionalTests {
     @Test
     void aprovacaoSemResponsavelRetorna400ESemAlteracoes() throws Exception {
         Solicitacao solicitacao = prepararSolicitacao();
-        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()))
+        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.timestamp").exists());
         assertEquals(10, estoques.findAll().get(0).getQuantidade());
@@ -212,7 +213,7 @@ class BackendOperacionalTests {
     void aprovacaoComResponsavelInexistenteRetorna404ESemAlteracoes() throws Exception {
         Solicitacao solicitacao = prepararSolicitacao();
         long movimentosAntes = movimentacoes.count();
-        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).param("responsavelId", "2147483647"))
+        mvc.perform(put("/solicitacoes/{id}/aprovar", solicitacao.getId()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", "2147483647"))
                 .andExpect(status().isNotFound());
         assertEquals(10, estoques.findAll().get(0).getQuantidade());
         assertEquals(movimentosAntes, movimentacoes.count());
@@ -224,9 +225,9 @@ class BackendOperacionalTests {
             mvc.perform(get(path)).andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.status").value(400)).andExpect(jsonPath("$.path").value(path));
         }
-        mvc.perform(post("/produtos").contentType(MediaType.APPLICATION_JSON).content("{invalido"))
+        mvc.perform(post("/produtos").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).contentType(MediaType.APPLICATION_JSON).content("{invalido"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.mensagem").value("Requisição inválida"));
-        mvc.perform(post("/solicitacoes"))
+        mvc.perform(post("/solicitacoes").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.timestamp").exists());
     }
 

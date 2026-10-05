@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './security-support.js'
 const backend = 'http://localhost:8081'
 let fixture
 async function call(request, path, options = {}) {

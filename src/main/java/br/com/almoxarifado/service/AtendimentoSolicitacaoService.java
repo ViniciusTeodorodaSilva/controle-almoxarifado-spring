@@ -5,6 +5,8 @@ import br.com.almoxarifado.exception.*;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -13,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class AtendimentoSolicitacaoService {
     private final SolicitacaoRepository solicitacoes;
     private final ItemSolicitacaoRepository itens;
@@ -43,15 +46,19 @@ public class AtendimentoSolicitacaoService {
         catch(java.security.NoSuchAlgorithmException e) { throw new IllegalStateException("SHA-256 indisponível",e); }
     }
     @Transactional(readOnly=true)
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
     public OperacaoSolicitacaoResponse operacao(Integer id) {
         var s=solicitacoes.findById(id).orElseThrow(()->new RecursoNaoEncontradoException("Solicitação não encontrada"));
         return resposta(snapshot(s));
     }
     @Transactional(readOnly=true)
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
     public List<OperacaoSolicitacaoResponse.Item> faltas(Integer id) {
         return operacao(id).itens().stream().filter(i->i.quantidadePendente()!=null&&i.quantidadePendente()>0).toList();
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_SEPARAR')")
+    @Auditar("ATENDIMENTOSOLICITACAO_INICIARSEPARACAO")
     public OperacaoSolicitacaoResponse iniciarSeparacao(Integer id,Integer responsavelId) {
         var s=bloquear(id); var view=snapshot(s); exigirConsistencia(view);
         if(view.status()!=StatusSolicitacao.APROVADA) throw new ConflitoException("Somente solicitação APROVADA pode iniciar separação");
@@ -59,6 +66,8 @@ public class AtendimentoSolicitacaoService {
         solicitacoes.save(s); return resposta(snapshot(s));
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_ATENDER')")
+    @Auditar("ATENDIMENTOSOLICITACAO_ATENDER")
     public AtendimentoResponse atender(Integer id,AtendimentoInput input,String chave) {
         validarChave(chave);
         if(input==null||input.itens()==null||input.itens().isEmpty()||input.itens().size()>500) throw new IllegalArgumentException("Informe de 1 a 500 itens");
@@ -129,6 +138,7 @@ public class AtendimentoSolicitacaoService {
         return respostaAtendimento(atendimento);
     }
     @Transactional(readOnly=true)
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
     public List<AtendimentoResponse> historico(Integer id) {
         if(!solicitacoes.existsById(id)) throw new RecursoNaoEncontradoException("Solicitação não encontrada");
         return atendimentos.findBySolicitacaoIdOrderByIdAsc(id).stream().map(this::respostaAtendimento).toList();

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './security-support.js'
 const backend = 'http://localhost:8081'
 async function call(request, path, options = {}) { const response = await request.fetch(backend + path, options); expect(response.ok(), await response.text()).toBeTruthy(); return response.json() }
 async function fixture(request, amount = 8, stock = 5) {

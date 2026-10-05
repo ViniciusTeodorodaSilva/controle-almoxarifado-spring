@@ -9,6 +9,8 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import br.com.almoxarifado.exception.*;
 
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class ProdutoService {
 
     private final ProdutoRepository repository;
@@ -36,16 +39,20 @@ public class ProdutoService {
         this.itens = itens;
         this.movimentos = movimentos;
     }
+    @PreAuthorize("@autorizacao.permite('PRODUTO_LER')")
 
     public List<Produto> listar() {
         return repository.findAll();
     }
+    @PreAuthorize("@autorizacao.permite('PRODUTO_LER')")
 
     public Optional<Produto> buscarPorId(Integer id) {
         return repository.findById(id);
     }
 
     @Transactional
+    @PreAuthorize("@autorizacao.permite('PRODUTO_GERENCIAR')")
+    @Auditar("PRODUTO_CADASTRAR")
     public Produto cadastrar(Produto produto) {
         if (produto == null || produto.getId() != null) {
             throw new IllegalArgumentException("Cadastro não permite informar ID");
@@ -59,6 +66,8 @@ public class ProdutoService {
         return repository.saveAndFlush(produto);
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('PRODUTO_GERENCIAR')")
+    @Auditar("PRODUTO_ATUALIZAR")
     public Produto atualizar(Integer id, Produto dados) {
         if (dados == null || dados.getNome() == null || dados.getNome().isBlank()) {
             throw new IllegalArgumentException("Nome deve ser informado");
@@ -127,15 +136,18 @@ public class ProdutoService {
             }
         }
     }
+    @PreAuthorize("@autorizacao.permite('PRODUTO_LER')")
 
     public List<Produto> listar(Boolean ativo) {
         return ativo == null ? listar() : repository.findByAtivo(ativo);
     }
+    @PreAuthorize("@autorizacao.permite('PRODUTO_LER')")
 
     public List<Produto> buscar(String termo, Integer categoriaId, Boolean ativo) {
         if (categoriaId != null && !categorias.existsById(categoriaId)) throw new RecursoNaoEncontradoException("Categoria não encontrada");
         return pesquisar(termo, categoriaId, ativo, false);
     }
+    @PreAuthorize("@autorizacao.permite('PRODUTO_LER')")
 
     public List<Produto> equivalentes(String termo) {
         if (termo == null || termo.strip().length() < 3) throw new IllegalArgumentException("Informe pelo menos 3 caracteres para comparar nome/descrição");

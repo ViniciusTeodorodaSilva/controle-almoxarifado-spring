@@ -13,15 +13,18 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@org.springframework.security.test.context.support.WithMockUser
 @WebMvcTest(SolicitacaoController.class)
 class SolicitacaoControllerTests {
     @Autowired MockMvc mvc;
     @MockitoBean SolicitacaoService service;
+    @MockitoBean org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
+    @MockitoBean br.com.almoxarifado.security.AuditoriaService auditoria;
 
     @Test
     void endpointAprovarDelegaAoService() throws Exception {
         when(service.aprovar(1, 123)).thenReturn(solicitacao(StatusSolicitacao.APROVADA));
-        mvc.perform(put("/solicitacoes/1/aprovar").param("responsavelId", "123"))
+        mvc.perform(put("/solicitacoes/1/aprovar").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", "123"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APROVADA"));
         verify(service).aprovar(1, 123);
@@ -30,7 +33,7 @@ class SolicitacaoControllerTests {
     @Test
     void endpointRejeitarDelegaAoService() throws Exception {
         when(service.rejeitar(1)).thenReturn(solicitacao(StatusSolicitacao.REJEITADA));
-        mvc.perform(put("/solicitacoes/1/rejeitar"))
+        mvc.perform(put("/solicitacoes/1/rejeitar").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJEITADA"));
         verify(service).rejeitar(1);
@@ -39,7 +42,7 @@ class SolicitacaoControllerTests {
     @Test
     void regraDeNegocioInvalidaRetorna400() throws Exception {
         when(service.aprovar(1, 123)).thenThrow(new IllegalArgumentException("Estoque insuficiente"));
-        mvc.perform(put("/solicitacoes/1/aprovar").param("responsavelId", "123"))
+        mvc.perform(put("/solicitacoes/1/aprovar").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", "123"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value("Estoque insuficiente"));
     }
@@ -47,7 +50,7 @@ class SolicitacaoControllerTests {
     @Test
     void itemAposAprovacaoRetorna409() throws Exception {
         when(service.adicionarItem(1, 2, 3)).thenThrow(new br.com.almoxarifado.exception.ConflitoException("Somente solicitação PENDENTE permite esta operação"));
-        mvc.perform(post("/solicitacoes/1/itens").param("produtoId", "2").param("quantidade", "3"))
+        mvc.perform(post("/solicitacoes/1/itens").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("produtoId", "2").param("quantidade", "3"))
                 .andExpect(status().isConflict());
         verify(service).adicionarItem(1, 2, 3);
     }
@@ -62,7 +65,7 @@ class SolicitacaoControllerTests {
     @Test
     void erroInesperadoNaoExpoeDetalhesInternos() throws Exception {
         when(service.aprovar(1, 123)).thenThrow(new IllegalStateException("Detalhe interno sensível"));
-        mvc.perform(put("/solicitacoes/1/aprovar").param("responsavelId", "123"))
+        mvc.perform(put("/solicitacoes/1/aprovar").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).param("responsavelId", "123"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.mensagem").value("Erro interno ao processar a requisição"))

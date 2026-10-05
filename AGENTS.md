@@ -21,3 +21,9 @@ Trabalhar na branch de desenvolvimento vigente, sem alterar `main`, e seguir as 
 ## Segurança de configuração
 
 Seguir [docs/security.md](docs/security.md). Nunca versionar ou imprimir secrets; nunca colocá-los no frontend/VITE_*. Usar configuração externa e revisar staging antes de commit. Credenciais já versionadas são consideradas comprometidas até rotação. Security gate obrigatório antes de produção; não acessar banco nem rotacionar credenciais sem autorização específica.
+
+## Segurança atual — Security Baseline 2
+
+Consultar [autenticação e autorização](docs/autenticacao-autorizacao.md) antes de modificar endpoints. Spring Security usa sessão/CSRF; declarar permissão HTTP e de service, auditar operações críticas sem segredo e testar autorização positiva/negativa com H2. Nenhum endpoint operacional novo pode ficar público por conveniência de teste. A fonte mestre continua docs/Documentacao_Mestre_Plataforma_BES_v1_4.docx.
+
+Todo novo endpoint deve ser classificado explicitamente como público, autenticado ou permissionado e incluído no inventário de endpoints. Escritas autenticadas exigem CSRF conforme a arquitetura de sessão atual. Operações críticas devem declarar authority e autorização no service, registrar auditoria com ator autenticado separado do responsável operacional e avaliar idempotência e concorrência quando aplicáveis.

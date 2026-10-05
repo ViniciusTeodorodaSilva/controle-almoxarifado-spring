@@ -4,10 +4,13 @@ import br.com.almoxarifado.exception.*;
 import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class TransferenciaEstoqueService {
     private final TransferenciaEstoqueRepository transferencias;
     private final EstoqueRepository estoques;
@@ -21,6 +24,8 @@ public class TransferenciaEstoqueService {
         this.almoxarifados = almoxarifados; this.funcionarios = funcionarios; this.movimentos = movimentos;
     }
     @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_TRANSFERIR')")
+    @Auditar("TRANSFERENCIAESTOQUE_CRIAR")
     public TransferenciaResponse criar(TransferenciaInput dados) {
         if (dados == null || dados.origemId() == null || dados.destinoId() == null || dados.responsavelId() == null
                 || dados.origemId() <= 0 || dados.destinoId() <= 0 || dados.responsavelId() <= 0) throw new IllegalArgumentException("Origem, destino e responsável devem ser informados");
@@ -93,6 +98,7 @@ public class TransferenciaEstoqueService {
         movimento.setSaldoAnterior(anterior); movimento.setSaldoPosterior(posterior); movimentos.save(movimento);
     }
     @Transactional(readOnly = true)
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
     public List<TransferenciaResponse> listar(Integer origemId, Integer destinoId, Integer produtoId) {
         validarFiltros(origemId, destinoId, produtoId);
         return transferencias.filtrar(origemId, destinoId, produtoId).stream().map(this::resposta).toList();
@@ -103,9 +109,11 @@ public class TransferenciaEstoqueService {
         if (produtoId != null && !produtos.existsById(produtoId)) throw new RecursoNaoEncontradoException("Produto não encontrado");
     }
     @Transactional(readOnly = true)
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
     public TransferenciaResponse buscar(Integer id) { return resposta(encontrar(id)); }
     private TransferenciaEstoque encontrar(Integer id) { return transferencias.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Transferência não encontrada")); }
     @Transactional(readOnly = true)
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
     public List<MovimentacaoTransferenciaResponse> movimentacoes(Integer id) {
         var transferencia = encontrar(id);
         return movimentos.findByTransferenciaIdOrderByIdAsc(id).stream().map(m -> new MovimentacaoTransferenciaResponse(m.getId(),

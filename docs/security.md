@@ -1,4 +1,8 @@
-# Security Baseline 1 — BES
+# Segurança — BES
+
+A baseline atual é a [Security Baseline 2](autenticacao-autorizacao.md): sessão, CSRF, perfis e auditoria. Os registros abaixo preservam a Security Baseline 1 e a obrigação de rotação histórica.
+
+## Security Baseline 1 — configuração externa
 
 Referência funcional: Documentacao_Mestre_Plataforma_BES_v1_4.docx. Esta entrega cobre parcialmente RF154 (proteção de credenciais), RF155 (isolamento de testes) e RF153 (configuração de logs). Não conclui segurança, HTTPS, monitoramento ou segregação completa de ambientes.
 
@@ -6,7 +10,7 @@ Referência funcional: Documentacao_Mestre_Plataforma_BES_v1_4.docx. Esta entreg
 
 O backend requer DB_URL, DB_USERNAME e DB_PASSWORD fora do profile test. Não há defaults de credenciais. A validação ocorre antes da criação dos beans de banco e informa somente o nome da variável ausente. Valores vazios são rejeitados. Não colocar senha na URL JDBC; usar DB_PASSWORD. Não fornecer secrets em argumentos de linha de comando, que podem aparecer na lista de processos.
 
-application.properties contém configuração comum sem credenciais. application-test.properties permanece exclusivo dos testes, com H2 em memória e credenciais públicas de fixture. Não são necessários arquivos dev/prod duplicados: desenvolvimento e produção utilizam configuração externa; o profile prod pode ser selecionado pelo ambiente. Nunca distribuir recursos de teste ou ativar test em produção.
+application.properties contém configuração comum sem credenciais. application-test.properties permanece exclusivo dos testes, com H2 em memória e credenciais públicas de fixture. O profile dev contém apenas a liberação explícita do cookie para HTTP local; desenvolvimento e produção utilizam configuração externa; o profile prod pode ser selecionado pelo ambiente. Nunca distribuir recursos de teste ou ativar test em produção.
 
 .env.example contém somente campos vazios. Spring Boot não carrega .env automaticamente. Definir as variáveis no ambiente do processo pelo gerenciador de secrets da infraestrutura ou configuração local não versionada; não imprimir valores. Em desenvolvimento, após configurá-las, executar .\mvnw.cmd spring-boot:run. Produção deve usar identidade de banco dedicada, menor privilégio e sem permissões de DDL; ddl-auto=none é preservado. Não usar conta administrativa. Planejar provisionamento e migrations separadamente.
 
@@ -14,7 +18,7 @@ A configuração externa segue a [documentação oficial do Spring Boot](https:/
 
 ## Testes
 
-Executar .\mvnw.cmd clean test sem DB_*; as suítes usam H2 e profile test. Os testes de validação externa não criam datasource. No frontend: npm.cmd run build e npm.cmd test. Playwright utiliza o script scripts/start-backend-h2.ps1 e vite preview com proxy público para H2 na porta 8081; aguardar HTTP 200 em /solicitacoes e /api/solicitacoes antes da suíte. Nunca usar MySQL para essas verificações.
+Executar .\mvnw.cmd clean test sem DB_*; as suítes usam H2 e profile test. Os testes de validação externa não criam datasource. No frontend: npm.cmd run build e npm.cmd test. Playwright utiliza o script scripts/start-backend-h2.ps1 e vite preview com proxy público para H2 na porta 8081; usar o flag -WithTestUsers e aguardar HTTP 200 em /auth/csrf e /api/auth/csrf antes da suíte; endpoints operacionais agora exigem login. Nunca usar MySQL para essas verificações.
 
 ## Frontend e novos secrets
 
@@ -30,9 +34,9 @@ Rotacionar fora do código, pelo responsável autorizado: gerar nova credencial,
 
 ## Logs, HTTP e gate de produção
 
-SQL e bindings foram desativados na configuração comum; debug/trace e detalhes de requisição também. Erros HTTP padrão não incluem stack trace, mensagem interna ou binding errors. O handler existente retorna mensagem genérica para erros inesperados, mas registra a exceção internamente: drivers ou bibliotecas podem incluir dados sensíveis. Restringir acesso e retenção de logs; nunca incluir credenciais na URL. A ausência de logs explícitos de secrets não equivale a sanitização completa dos logs de terceiros.
+SQL e bindings foram desativados na configuração comum; debug/trace e detalhes de requisição também. Erros HTTP padrão não incluem stack trace, mensagem interna ou binding errors. A auditoria final da Baseline 2 substituiu o log da exceção completa por mensagem fixa com correlação no MDC e fixou Spring Web/Security em INFO: o handler não registra mensagem, URI ou stack trace. Drivers/bibliotecas e overrides externos ainda exigem revisão de implantação. Restringir acesso e retenção de logs; nunca incluir credenciais na URL. A ausência de logs explícitos de secrets não equivale a sanitização completa dos logs de terceiros.
 
-Não existem Actuator, DevTools ou CORS permissivo configurados. O frontend usa proxy de mesma origem. Os endpoints operacionais ainda não têm autenticação/autorização: manter o sistema em ambiente controlado, sem exposição pública até security gate. Não foi implementada autenticação nesta baseline.
+Não existem Actuator, DevTools ou CORS permissivo configurados. O frontend usa proxy de mesma origem. No momento da entrega original da Baseline 1, os endpoints operacionais ainda não tinham autenticação/autorização: manter o sistema em ambiente controlado, sem exposição pública até security gate. A autenticação foi adicionada posteriormente na Baseline 2, documentada no início deste arquivo.
 
 Gate antes de produção: rotação confirmada, secrets externos, HTTPS, autenticação/autorização, política CORS explícita se houver origens diferentes, acesso a logs restrito, auditoria, backup/restauração e revisão de dependências. Próxima baseline: autenticação, permissões por operação e auditoria atribuída à identidade autenticada.
 
