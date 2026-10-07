@@ -50,6 +50,7 @@ public final class ComprasViews {
     return map(
         "id",
         i.getId(),
+        "contexto",i.getContexto(),
         "produtoId",
         i.getProduto().getId(),
         "codigo",
@@ -77,6 +78,7 @@ public final class ComprasViews {
             .map(
                 a ->
                     map(
+                        "contexto",a.getNecessidade().getSolicitacao().getContexto(),
                         "necessidadeId",
                         a.getNecessidade().getId(),
                         "solicitacaoId",
@@ -179,6 +181,8 @@ public final class ComprasViews {
                     map(
                         "id",
                         i.getId(),
+                        "quantidadeEstoque", quantidadeEstoqueRecebida(i),
+                        "contexto",quantidadeEstoqueRecebida(i)>0 ? i.getItemPedido().getContexto() : null,
                         "itemPedidoId",
                         i.getItemPedido().getId(),
                         "produtoId",
@@ -200,6 +204,7 @@ public final class ComprasViews {
                             .map(
                                 d ->
                                     map(
+                                        "contexto",d.getAlocacao().getNecessidade().getSolicitacao().getContexto(),
                                         "necessidadeId",
                                         d.getAlocacao().getNecessidade().getId(),
                                         "solicitacaoId",
@@ -208,6 +213,13 @@ public final class ComprasViews {
                                         d.getQuantidade()))
                             .toList()))
             .toList());
+  }
+
+  private static double quantidadeEstoqueRecebida(ItemRecebimentoCompra item) {
+    double destinado = 0;
+    for (var destino : item.getDestinacoes())
+      destinado = decimal(destinado, destino.getQuantidade(), true);
+    return decimal(item.getQuantidade(), destinado, false);
   }
 
   static double decimal(double a, double b, boolean somar) {

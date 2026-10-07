@@ -124,6 +124,7 @@ public final class ComprasInput {
   }
 
   public static final class Item extends EntradasSeguranca.Estrita {
+    public br.com.almoxarifado.obras.ObrasInput.Contexto contexto;
     public Integer produtoId;
     public Double quantidade;
     public BigDecimal valorUnitario;

@@ -9,8 +9,8 @@ const groups = [
   ['OPERAÇÃO', [['/solicitacoes','Solicitações',ClipboardList],['/estoques','Estoque',Warehouse],['/transferencias','Transferências',ArrowLeftRight],['/movimentacoes','Movimentações',ArrowLeftRight]]],
   ['COMPRAS', [['/necessidades-compra','Necessidades de compra',ShoppingCart],['/pedidos-compra','Pedidos de compra',ShoppingCart],['/fornecedores','Fornecedores',Building2]]],
   ['CATÁLOGO', [['/produtos','Produtos',Package],['/categorias','Categorias',Tags],['/unidades','Unidades de medida',Ruler]]],
-  ['ESTRUTURA', [['/almoxarifados','Almoxarifados',Building2],['/funcionarios','Funcionários',Users]]],
-  ['PRÓXIMOS MÓDULOS', [[null,'Obras / OS',HardHat],[null,'Ferramentas',Wrench],[null,'Inventário',ClipboardCheck]]]
+  ['ESTRUTURA', [['/obras','Obras',HardHat],['/ordens-servico','Ordens de serviço',ClipboardList],['/centros-custo','Centros de custo',Building2],['/almoxarifados','Almoxarifados',Building2],['/funcionarios','Funcionários',Users]]],
+  ['PRÓXIMOS MÓDULOS', [[null,'Ferramentas',Wrench],[null,'Inventário',ClipboardCheck]]]
 ]
 export default function AppShell() {
   const [open, setOpen] = useState(false)

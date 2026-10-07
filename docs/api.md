@@ -279,3 +279,49 @@ O contrato monetário novo responde `valorUnitario`, `subtotal` e `total` como *
 As alocações já comprometem a necessidade enquanto o pedido é RASCUNHO. Cancelar sem recebimentos ou editar o rascunho libera os vínculos anteriores. A leitura sob lock recarrega os contadores persistidos para evitar uso de estado antigo do contexto JPA. Evidências: [auditoria pré-commit](bloco4-auditoria-pre-commit.md).
 
 O snapshot de documento/contato do fornecedor no detalhe e documento do pedido respeita FORNECEDOR_GERENCIAR: sem essa authority, documento mascarado e contato null. A consulta do pedido não contorna a proteção existente no cadastro de fornecedor.
+
+## Bloco 5 — Obras, OS, CC e contexto operacional
+
+17 novos handlers permissionados, 8 escritas. Inventário atual: **102 handlers / 44 escritas**. HEAD acompanha GET; OPTIONS é infraestrutura. Matriz ADMIN/GESTOR gestão e ALMOXARIFE/CONSULTA leitura; sem endpoint operacional público.
+
+| Método | Rota | Público | Sessão | Authority HTTP/service | CSRF |
+|---|---|---|---|---|---|
+| GET | `/obras` | Não | Sim | `OBRA_LER` | Não |
+| GET | `/obras/{id}` | Não | Sim | `OBRA_LER` | Não |
+| GET | `/obras/{id}/resumo` | Não | Sim | `OBRA_LER` | Não |
+| POST | `/obras` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| PUT | `/obras/{id}` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| PUT | `/obras/{id}/status` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| GET | `/ordens-servico` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| GET | `/ordens-servico/{id}` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| GET | `/ordens-servico/{id}/resumo` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| POST | `/ordens-servico` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| PUT | `/ordens-servico/{id}` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| PUT | `/ordens-servico/{id}/status` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| GET | `/centros-custo` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| GET | `/centros-custo/{id}` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| GET | `/centros-custo/{id}/resumo` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| POST | `/centros-custo` | Não | Sim | `CENTRO_CUSTO_GERENCIAR` | Sim |
+| PUT | `/centros-custo/{id}` | Não | Sim | `CENTRO_CUSTO_GERENCIAR` | Sim |
+
+Listagens retornam `{content,number,size,totalElements,totalPages,first,last}`, pagina=0/tamanho=20 (1–100), ID desc. Obras: `termo` código/nome, `cliente`, `status`. OS: `termo` número/título, `obraId`, `centroCustoId`, `status`. CC: `termo` código/nome, `tipo`, `ativo`, `obraId`, `incluirGerais=false`; true inclui centros sem Obra para seletores. IDs de responsáveis e vínculos são operacionais INT; ator autenticado Long é derivado do servidor.
+
+POST/PUT de Obra: `{codigo,nome,descricao?,cliente?,localidade?,observacao?,responsavelId?,dataInicio?,dataTerminoPrevisto?}`. Código ASCII uppercase único global, nome obrigatório, código ≤50/nome/cliente/localidade ≤160 e textos ≤2000. Datas ISO; previsão de término não antecede início.
+
+CC: `{codigo,nome,descricao?,tipo,ativo,obraId?}`. Tipos OBRA/ADMINISTRATIVO/OPERACIONAL/OUTRO; tipo OBRA exige vínculo. Obra do CC é imutável, mesmo antes de uso.
+
+OS: `{obraId,centroCustoId?,titulo,descricao?,observacao?,prioridade?,responsavelId?}`. Obra obrigatória; CC corporativo ou da mesma Obra, vínculos imutáveis. Número `OS-ano-ID`, abertura/início/conclusão, atores/timestamps e versão não são entradas. Prioridade BAIXA/NORMAL/ALTA/URGENTE. Respostas têm campos públicos desses cadastros e auditoria de atores por ID, sem referências internas/hash/versão.
+
+PUT /status: `{status,motivo?}`, exclusivamente transição protegida. Regras: [contexto operacional](obras-os-centros-custo.md#transições). Obra PLANEJADA→ATIVA/CANCELADA; ATIVA→SUSPENSA/CONCLUIDA/CANCELADA; SUSPENSA→ATIVA/CANCELADA. OS ABERTA→EM_ANDAMENTO/CANCELADA; EM_ANDAMENTO→SUSPENSA/CONCLUIDA/CANCELADA; SUSPENSA→EM_ANDAMENTO/CANCELADA. OS suspensa/cancelada exige motivo ≤1000; terminais não reabrem. Encerramento exige demandas resolvidas e, para Obra, OS encerradas.
+
+Criação existente de solicitação mantém query `solicitanteId`,`almoxarifadoId` e admite `obraId`,`ordemServicoId`,`centroCustoId` opcionais. OS deriva Obra e CC; IDs contraditórios são 409. Referência inexistente 404; contexto inativo/suspenso/encerrado para nova demanda 409. Sem contexto continua válido. Não há edição posterior desse contexto. GET antigo, `/operacao` e necessidade acrescentam `contexto`, null no legado/geral, ou snapshot `{obraId,ordemServicoId,centroCustoId,obraCodigo,obraNome,ordemServicoNumero,centroCustoCodigo,centroCustoNome}`.
+
+GET `/solicitacoes`, `/necessidades-compra`, `/pedidos-compra` acrescenta os três filtros de contexto AND. Pedido considera a mesma origem/alocação para todas as dimensões, mantém todos os itens no detalhe e não transforma total do agregado em custo da obra filtrada. GET `/movimentacoes` filtra snapshots de saídas; ENTRADA de compra é rastreada por seus IDs de pedido/recebimento/destinações, sem atribuição global de Obra.
+
+Compra manual acrescenta `itens[].contexto:{obraId?,ordemServicoId?,centroCustoId?}` para classificar somente quantidade sem alocação do item. Exige quantidadeEstoque positiva, conserva declaração paraEstoque do Bloco 4. Alocação aceita somente necessidadeId/quantidade; contexto vem da origem persistida. Respostas de item, alocação e destinação de recebimento mostram contexto próprio, sem obra global no pedido. Cada item recebido acrescenta `quantidadeEstoque` efetivamente recebida (recebido menos destinações); seu `contexto` manual é null quando essa quantidade é zero. Não antecipa contexto de parcela futura. ENTRADA continua sem consumo; SAÍDA de atendimento copia o snapshot da solicitação.
+
+GET `/resumo` retorna `cadastro`, `quantidadeSolicitacoes`, `quantidadeNecessidades`, `quantidadePedidos`, `quantidadeOrdensServico`, `ordensServicoAbertas`, listas `ordensServico`, `solicitacoes`, `necessidades`, `pedidos`, `materiaisSolicitados`, `materiaisConsumidos`, `limiteRelacoes:100`, `custoConsumido:null` e `avisoCustos`. Para OS inclui referências legíveis Obra/CC/responsável disponíveis. Relações são tuplas escalares: OS `[id,numero,titulo,status]`; solicitação `[id,status,data]`; necessidade `[id,solicitacaoId,status,quantidade,recebida]`; pedido `[id,numero,status]`; material solicitado `[produtoId,nome,unidade,solicitado,atendidoConhecido]`; consumo `[produtoId,nome,unidade,saidas]`. Contagens totais não sofrem o limite da amostra. Para histórico completo, usar filtros/listagens da operação. Nenhum indicador monetário consumido é inventado.
+
+Escritas usam DTO estrito em todos os níveis e rejeitam campo interno/ator/status fora da ação de transição. Erros: 400 entrada inválida, 401 identidade, 403 permissão/CSRF, 404 referência, 409 estado/integridade/concorrência. Sucesso segue padrão 200. Criação de estrutura não tem chave persistida de idempotência; em resposta incerta consultar listagem antes de repetir. Unique protege código/número; transição terminal repetida é 409.
+
+Documentos frontend: `/ordens-servico/{id}/documento`, lista de separação, pedido e comprovante exibem contextos reais. Não há endpoint público de PDF/BI/QR. Scripts manuais, cobertura RF e limites: [Bloco 5](obras-os-centros-custo.md).

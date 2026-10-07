@@ -63,10 +63,14 @@ public class NecessidadeCompraService {
     @Transactional(readOnly=true)
     @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_LER')")
     public List<NecessidadeCompraResponse> listar(StatusNecessidadeCompra status,Integer produtoId,Integer almoxarifadoId,Integer solicitacaoId) {
+        return listar(status,produtoId,almoxarifadoId,solicitacaoId,null,null,null);
+    }
+    @Transactional(readOnly=true) @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_LER')")
+    public List<NecessidadeCompraResponse> listar(StatusNecessidadeCompra status,Integer produtoId,Integer almoxarifadoId,Integer solicitacaoId,Integer obra,Integer os,Integer cc) {
         if(produtoId!=null&&!produtos.existsById(produtoId)) throw new RecursoNaoEncontradoException("Produto não encontrado");
         if(almoxarifadoId!=null&&!locais.existsById(almoxarifadoId)) throw new RecursoNaoEncontradoException("Almoxarifado não encontrado");
         if(solicitacaoId!=null&&!solicitacoes.existsById(solicitacaoId)) throw new RecursoNaoEncontradoException("Solicitação não encontrada");
-        var lista=necessidades.filtrar(status,produtoId,almoxarifadoId,solicitacaoId);
+        var lista=necessidades.filtrarContexto(status,produtoId,almoxarifadoId,solicitacaoId,obra,os,cc);
         var porNecessidade=new java.util.HashMap<Integer,java.util.List<br.com.almoxarifado.compras.AlocacaoCompra>>();
         for(int start=0;start<lista.size();start+=100) {
             var ids=lista.subList(start,Math.min(start+100,lista.size())).stream().map(NecessidadeCompra::getId).toList();
@@ -80,6 +84,6 @@ public class NecessidadeCompraService {
     private NecessidadeCompraResponse resposta(NecessidadeCompra n) { return resposta(n,alocacoes.progresso(n)); }
     private NecessidadeCompraResponse resposta(NecessidadeCompra n,java.util.Map<String,Object> progresso) {
         return new NecessidadeCompraResponse(n.getId(),n.getItemSolicitacao().getId(),n.getSolicitacao().getId(),AtendimentoSolicitacaoService.produto(n.getProduto()),
-            AtendimentoSolicitacaoService.referencia(n.getAlmoxarifado()),n.getQuantidade(),n.getStatus().name(),n.getDataHora(),n.getMotivo(),AtendimentoSolicitacaoService.referencia(n.getResponsavel()),progresso);
+            AtendimentoSolicitacaoService.referencia(n.getAlmoxarifado()),n.getQuantidade(),n.getStatus().name(),n.getDataHora(),n.getMotivo(),AtendimentoSolicitacaoService.referencia(n.getResponsavel()),progresso,n.getSolicitacao().getContexto());
     }
 }

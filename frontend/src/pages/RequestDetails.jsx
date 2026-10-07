@@ -1,3 +1,4 @@
+import { ContextDisplay } from '../components/ContextSelector'
 import { Can, useAuth } from '../auth/AuthContext'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -28,7 +29,7 @@ export default function RequestDetails({ id, onClose, onChanged }) {
   }
   return <Modal title={`Solicitação #${id}`} onClose={onClose} busy={busy}><Notice error>{error}</Notice><ResourceView resource={resource}>{s => mode ?
     <ConfirmedOperation request={s} mode={mode} people={people} onCancel={() => setMode(null)} onBusy={setBusy} onSaved={refresh}/> : <>
-    <div className="detail-grid"><div><small>Solicitante</small><strong>{s.solicitante?.nome || '—'}</strong></div><div><small>Almoxarifado</small><strong>{s.almoxarifado?.nome || '—'}</strong></div><div><small>Data</small><strong>{dateTime(s.dataSolicitacao)}</strong></div><div><small>Status</small><Badge value={s.status}/></div></div>
+    <p><ContextDisplay value={s.contexto}/></p><div className="detail-grid"><div><small>Solicitante</small><strong>{s.solicitante?.nome || '—'}</strong></div><div><small>Almoxarifado</small><strong>{s.almoxarifado?.nome || '—'}</strong></div><div><small>Data</small><strong>{dateTime(s.dataSolicitacao)}</strong></div><div><small>Status</small><Badge value={s.status}/></div></div>
     <Notice error={s.compatibilidadeLegada === 'INCONSISTENTE'}>{s.aviso}</Notice>
     {s.responsavelAprovacao && <p className="stock-summary">Aprovada por {s.responsavelAprovacao.nome} · {dateTime(s.dataAprovacao)}</p>}
     {s.responsavelSeparacao && <p className="stock-summary">Separação: {s.responsavelSeparacao.nome} · {dateTime(s.dataSeparacao)}</p>}

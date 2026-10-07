@@ -1,3 +1,4 @@
+import ContextSelector from '../components/ContextSelector'
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
@@ -7,7 +8,7 @@ import { Modal, Field, Notice, ResourceView, DataTable, quantity } from '../comp
 import { quantityError, unitLabel, submitRequest, reconcileRequest } from '../utils/operations'
 export default function RequestForm({ onClose, onSaved, onPartial, onOpen }) {
   const refs = useResource(useCallback(signal => Promise.all(['funcionarios', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
-  const [draft, setDraft] = useState({ solicitanteId: '', almoxarifadoId: '', items: [] })
+  const [draft, setDraft] = useState({ solicitanteId: '', almoxarifadoId: '', items: [], contexto: {} })
   const [product, setProduct] = useState(null), [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [itemError, setItemError] = useState('')
   const [progress, setProgress] = useState({ id: null, completed: 0, uncertain: false, needsCheck: false })
@@ -54,7 +55,7 @@ export default function RequestForm({ onClose, onSaved, onPartial, onOpen }) {
       <fieldset disabled={busy || !!progress.id || progress.uncertain} className="form-section"><legend>Identificação</legend><div className="form-grid">
         <Field label="Solicitante *"><select required value={draft.solicitanteId} onChange={event => setDraft({ ...draft, solicitanteId: event.target.value })}><option value="">Selecionar funcionário</option>{people.map(person => <option key={person.id} value={person.id}>{person.nome}</option>)}</select></Field>
         <Field label="Almoxarifado *"><select required value={draft.almoxarifadoId} onChange={event => setDraft({ ...draft, almoxarifadoId: event.target.value })}><option value="">Selecionar almoxarifado</option>{warehouses.map(place => <option key={place.id} value={place.id}>{place.nome}</option>)}</select></Field>
-      </div></fieldset>
+      </div><ContextSelector value={draft.contexto} onChange={contexto=>setDraft({...draft,contexto})} disabled={busy || !!progress.id || progress.uncertain}/></fieldset>
       {!progress.id && !progress.uncertain && <fieldset disabled={busy} className="form-section"><legend>Adicionar material</legend>
         <ProductPicker value={product} onChange={value => { setProduct(value); setItemError('') }} required={false}/>
         <div className="item-entry"><Field label="Quantidade" error={itemError} hint={product ? `Unidade: ${unitLabel(product)}${product.unidadeMedidaConfigurada?.permiteFracionamento === false ? ' · somente inteiros' : ''}` : undefined}><input type="number" min="0" step={product?.unidadeMedidaConfigurada?.permiteFracionamento === false ? '1' : 'any'} value={amount} onChange={event => { setAmount(event.target.value); setItemError('') }}/></Field><button type="button" className="btn secondary" onClick={addItem}><Plus size={15}/>Adicionar item</button></div>

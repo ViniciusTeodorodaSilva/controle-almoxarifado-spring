@@ -1,3 +1,4 @@
+import { contextBody } from './context.js'
 export const unitLabel = product => product?.unidadeMedidaConfigurada?.sigla || product?.unidadeMedida || '—'
 export function quantityError(product, value) {
   const amount = Number(value)
@@ -33,7 +34,7 @@ export async function submitRequest(client, draft, initial = {}, onProgress = ()
   if (progress.uncertain) throw new SubmissionError(new Error('Confira o resultado antes de repetir uma gravação.'), progress)
   try {
     if (!progress.id) {
-      const record = await client.createRequest(Number(draft.solicitanteId), Number(draft.almoxarifadoId))
+      const record = await client.createRequest(Number(draft.solicitanteId), Number(draft.almoxarifadoId), ...(Object.keys(contextBody(draft.contexto)).length ? [contextBody(draft.contexto)] : []))
       progress = { ...progress, id: record.id }
       onProgress(progress)
     }

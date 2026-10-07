@@ -184,3 +184,7 @@ Necessidades permanecem fotografias ABERTAS após reposição; transições/comp
 - [src/main/java/br/com/almoxarifado/service/NecessidadeCompraService.java](../src/main/java/br/com/almoxarifado/service/NecessidadeCompraService.java).
 - [src/main/java/br/com/almoxarifado/service/QuantidadesOperacionais.java](../src/main/java/br/com/almoxarifado/service/QuantidadesOperacionais.java).
 - [src/test/java/br/com/almoxarifado/service/AtendimentoSolicitacaoTests.java](../src/test/java/br/com/almoxarifado/service/AtendimentoSolicitacaoTests.java).
+
+## Evolução Bloco 5 — contexto imutável
+
+Criação admite Obra/OS/CC opcionais validados no servidor; ausência preserva fluxo geral/legado. Contexto é congelado na origem e copiado na SAÍDA confirmada, sem reclassificar após renomear estrutura. Necessidades derivam da mesma origem. Operação e Lista de Separação exibem o snapshot. Aprovação e recebimento continuam sem consumo automático. Ver [regras e RFs](obras-os-centros-custo.md).

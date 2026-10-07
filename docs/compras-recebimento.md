@@ -94,3 +94,9 @@ Evidências finais, arquivos, comandos e os 84 pontos solicitados: [relatório d
 As somas de compromisso também passam pela verificação de representação decimal exata, sem conversão final silenciosa de BigDecimal para double. IDs de atores mantêm o contrato escalar e recebem relações JPA privadas, LAZY e somente de leitura para gerar as mesmas FKs a bes_usuario previstas nos scripts. Nenhuma relação de usuário/senha é exposta em DTO ou no histórico de movimentos. Não há cascade de usuário nem alteração de schema externo nesta auditoria.
 
 Documento e contato de fornecedor no snapshot do pedido também exigem FORNECEDOR_GERENCIAR para leitura integral; demais leitores recebem documento mascarado/contato null, incluindo o documento imprimível. Não é possível contornar a proteção do cadastro lendo outro endpoint. A recarga de pedido sob lock não usa cascade REFRESH: itens/alocações são recarregados explicitamente após o lock do pai, preservando os demais cascades.
+
+## Evolução Bloco 5 — várias obras no mesmo pedido
+
+Contexto de cada alocação deriva da solicitação imutável da necessidade. Mesmo produto pode consolidar necessidades de várias obras, sem contexto global no Pedido. Contexto manual opcional do item classifica apenas quantidade sem alocação destinada a estoque; alocações preservam origens próprias. Pedido/Recebimento imprimíveis exibem essas origens. Filtros de contexto combinam dimensões da mesma origem. Recebimento permanece ENTRADA e não vira consumo/atendimento nem custo da Obra. Detalhes: [Bloco 5](obras-os-centros-custo.md).
+
+A auditoria do Bloco 5 corrigiu N+1 na listagem contextual de necessidades com EntityGraph específico das referências do DTO, mantendo o carregamento de progresso por batches. Regra determinística de destinação por necessidadeId crescente foi validada com parcelas 30/20/50 para origens A=60/B=40. Ver [auditoria](bloco5-auditoria-pre-commit.md).

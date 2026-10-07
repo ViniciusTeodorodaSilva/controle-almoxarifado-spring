@@ -47,13 +47,14 @@ public class ComprasController {
       @RequestParam(required = false) StatusPedidoCompra status,
       @RequestParam(required = false) Integer produtoId,
       @RequestParam(required = false) Integer necessidadeId,
+      @RequestParam(required=false) Integer obraId,@RequestParam(required=false) Integer ordemServicoId,@RequestParam(required=false) Integer centroCustoId,
       @RequestParam(required = false) LocalDate de,
       @RequestParam(required = false) LocalDate ate,
       @RequestParam(defaultValue = "0") int pagina,
       @RequestParam(defaultValue = "20") int tamanho) {
     return ComprasPage.of(
         pedidos.listar(
-            numero, fornecedorId, status, produtoId, necessidadeId, de, ate, pagina, tamanho));
+            numero, fornecedorId, status, produtoId, necessidadeId, de, ate, pagina, tamanho,obraId,ordemServicoId,centroCustoId));
   }
 
   @GetMapping("/pedidos-compra/{id}")

@@ -6,8 +6,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "movimentacao")
+@Table(name = "movimentacao", indexes = {@Index(name="ix_movimentacao_ctx_obra",columnList="contexto_obra_id"),@Index(name="ix_movimentacao_ctx_ordem_servico",columnList="contexto_ordem_servico_id"),@Index(name="ix_movimentacao_ctx_centro_custo",columnList="contexto_centro_custo_id")})
 public class Movimentacao {
+ @jakarta.persistence.Embedded private br.com.almoxarifado.obras.ContextoOperacional contexto;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_obra_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.Obra contextoObraRef;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_ordem_servico_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.OrdemServico contextoOSRef;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_centro_custo_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.CentroCusto contextoCCRef;
+ public br.com.almoxarifado.obras.ContextoOperacional getContexto(){return contexto;}
+ public void setContexto(br.com.almoxarifado.obras.ContextoOperacional v){contexto=v;}
+
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="ator_compra_id",insertable=false,updatable=false)
     private br.com.almoxarifado.security.Usuario atorCompraReferencia;

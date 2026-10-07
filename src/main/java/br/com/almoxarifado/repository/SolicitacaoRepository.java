@@ -9,6 +9,10 @@ import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Integer> {
+ @org.springframework.data.jpa.repository.EntityGraph(attributePaths={"itens","itens.produto","solicitante","almoxarifado"})
+ @Query("select s from Solicitacao s where (:obra is null or s.contexto.obraId=:obra) and (:os is null or s.contexto.ordemServicoId=:os) and (:cc is null or s.contexto.centroCustoId=:cc)")
+ java.util.List<Solicitacao> filtrarContexto(@Param("obra") Integer obra,@Param("os") Integer os,@Param("cc") Integer cc);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Solicitacao s where s.id = :id")
     Optional<Solicitacao> buscarParaAtualizacao(@Param("id") Integer id);

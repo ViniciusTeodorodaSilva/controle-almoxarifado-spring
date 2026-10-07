@@ -8,12 +8,19 @@ import java.util.*;
 @Entity
 @Table(
     name = "bes_item_pedido_compra",
-    indexes = {@Index(name = "ix_item_compra_produto", columnList = "produto_id,pedido_id,ativo")})
+    indexes = {@Index(name = "ix_item_compra_produto", columnList = "produto_id,pedido_id,ativo"), @Index(name="ix_bes_item_pedido_compra_ctx_obra",columnList="contexto_obra_id"),@Index(name="ix_bes_item_pedido_compra_ctx_ordem_servico",columnList="contexto_ordem_servico_id"),@Index(name="ix_bes_item_pedido_compra_ctx_centro_custo",columnList="contexto_centro_custo_id")})
 @org.hibernate.annotations.Check(
     constraints =
         "quantidade_pedida > 0 and quantidade_recebida >= 0 and quantidade_recebida <="
             + " quantidade_pedida and quantidade_estoque >= 0 and valor_unitario >= 0")
 public class ItemPedidoCompra {
+ @jakarta.persistence.Embedded private br.com.almoxarifado.obras.ContextoOperacional contexto;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_obra_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.Obra contextoObraRef;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_ordem_servico_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.OrdemServico contextoOSRef;
+ @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_centro_custo_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.CentroCusto contextoCCRef;
+ public br.com.almoxarifado.obras.ContextoOperacional getContexto(){return contexto;}
+ public void setContexto(br.com.almoxarifado.obras.ContextoOperacional v){contexto=v;}
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   Integer id;

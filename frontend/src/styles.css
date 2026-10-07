@@ -130,3 +130,9 @@ body:has(dialog[open]){overflow:hidden}
 .purchase-document .document-table th:nth-child(4) { width: 15%; }
 .purchase-document .document-table th:nth-child(5) { width: 16%; }
 .purchase-document .document-metadata dd { overflow-wrap: anywhere; }
+
+/* Bloco 5: long contexts wrap inside cards and printable documents. */
+.context-value { overflow-wrap:anywhere; white-space:normal; }
+.filters > .form-section { flex-basis:100%; min-width:0; }
+.form-section { min-width:0; }
+@media print { .context-value { font-size:9pt; } }

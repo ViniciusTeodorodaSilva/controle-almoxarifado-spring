@@ -1,0 +1,6 @@
+export const contextBody = value => Object.fromEntries(['obraId','ordemServicoId','centroCustoId'].filter(k => value?.[k] !== '' && value?.[k] != null).map(k => [k, Number(value[k])]))
+export const contextText = c => c ? [c.obraCodigo && `${c.obraCodigo} · ${c.obraNome}`,c.ordemServicoNumero,c.centroCustoCodigo && `${c.centroCustoCodigo} · ${c.centroCustoNome}`].filter(Boolean).join(' / ') || 'Sem contexto' : 'Sem contexto'
+export const compatibleOrders = (rows, obraId) => rows.filter(o => (!obraId || String(o.obraId) === String(obraId)) && ['ABERTA','EM_ANDAMENTO'].includes(o.status))
+export const compatibleCenters = (rows, obraId, os) => rows.filter(c => c.ativo && (!c.obraId || !obraId || String(c.obraId) === String(obraId)) && (!os?.centroCustoId || c.id === os.centroCustoId))
+export const transitions = (kind, status) => kind === 'obras' ? ({PLANEJADA:['ATIVA','CANCELADA'],ATIVA:['SUSPENSA','CONCLUIDA','CANCELADA'],SUSPENSA:['ATIVA','CANCELADA']}[status] || []) : ({ABERTA:['EM_ANDAMENTO','CANCELADA'],EM_ANDAMENTO:['SUSPENSA','CONCLUIDA','CANCELADA'],SUSPENSA:['EM_ANDAMENTO','CANCELADA']}[status] || [])
+export const matchesContext = (c, f) => ['obraId','ordemServicoId','centroCustoId'].every(k => !f?.[k] || String(c?.[k]) === String(f[k]))

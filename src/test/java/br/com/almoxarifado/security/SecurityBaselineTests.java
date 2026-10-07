@@ -116,7 +116,7 @@ class SecurityBaselineTests {
     if(!path.equals("/auth/csrf")&&!path.equals("/auth/login"))mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method.name()),uri).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isUnauthorized());
    }
   }
-  assertEquals(85,total);assertEquals(36,escritas);
+  assertEquals(102,total);assertEquals(44,escritas);
   for(String method:List.of("PATCH","DELETE"))mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method),"/usuarios/999999").session(s.session())).andExpect(status().isForbidden());
  }
  @Test void corsAutorizadoNaoDispensaCsrf()throws Exception {

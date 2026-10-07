@@ -212,3 +212,31 @@ Os perfis preservam permissões anteriores. GESTOR não recebe RECEBIMENTO_REGIS
 Cobertura adversarial: matriz positiva/negativa HTTP/service, CSRF em todas as 36 escritas, mass assignment, concorrência, rollback, idempotência e resposta perdida. Ver [Bloco 4](compras-recebimento.md).
 
 No Bloco 4, a proteção de documento/contato do fornecedor vale também para snapshots retornados no pedido: documento integral e contato apenas com FORNECEDOR_GERENCIAR; demais leitores recebem máscara/null. Documento imprimível consome esse mesmo GET permissionado. Evidências: [auditoria pré-commit do Bloco 4](bloco4-auditoria-pre-commit.md).
+
+## Bloco 5 — inventário e matriz atual
+
+Seis authorities adicionadas: OBRA_LER/GERENCIAR, ORDEM_SERVICO_LER/GERENCIAR, CENTRO_CUSTO_LER/GERENCIAR. ADMIN/GESTOR gerenciam estruturas e transições; ALMOXARIFE/CONSULTA leem para contextualizar operações. Nenhuma concessão de USUARIO_GERENCIAR. Leituras permanecem globais; escopo por empresa/Obra não foi introduzido e exige projeto próprio quando necessário.
+
+Todos os 17 handlers abaixo são permissionados; as 8 escritas exigem sessão/CSRF, autorização no service e auditoria com ator derivado da identidade. Total atual: 102 handlers e 44 escritas. Corpo usa DTO estrito, datas/atores/números internos não são atribuídos pelo cliente; troca de IDs não remove a authority nem coerência de contexto.
+
+| Método | Rota | Público | Sessão | Authority HTTP/service | CSRF |
+|---|---|---|---|---|---|
+| GET | `/obras` | Não | Sim | `OBRA_LER` | Não |
+| GET | `/obras/{id}` | Não | Sim | `OBRA_LER` | Não |
+| GET | `/obras/{id}/resumo` | Não | Sim | `OBRA_LER` | Não |
+| POST | `/obras` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| PUT | `/obras/{id}` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| PUT | `/obras/{id}/status` | Não | Sim | `OBRA_GERENCIAR` | Sim |
+| GET | `/ordens-servico` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| GET | `/ordens-servico/{id}` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| GET | `/ordens-servico/{id}/resumo` | Não | Sim | `ORDEM_SERVICO_LER` | Não |
+| POST | `/ordens-servico` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| PUT | `/ordens-servico/{id}` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| PUT | `/ordens-servico/{id}/status` | Não | Sim | `ORDEM_SERVICO_GERENCIAR` | Sim |
+| GET | `/centros-custo` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| GET | `/centros-custo/{id}` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| GET | `/centros-custo/{id}/resumo` | Não | Sim | `CENTRO_CUSTO_LER` | Não |
+| POST | `/centros-custo` | Não | Sim | `CENTRO_CUSTO_GERENCIAR` | Sim |
+| PUT | `/centros-custo/{id}` | Não | Sim | `CENTRO_CUSTO_GERENCIAR` | Sim |
+
+Estrutura não tem DELETE. Transições são endpoints específicos `/status`, com máquina de estados server-side e rollback se auditoria falhar. Histórico mantém snapshots, FKs e identificação de ator; não há contextos fictícios. Eventos e regras em [Bloco 5](obras-os-centros-custo.md); contratos e entradas em [API](api.md#bloco-5--obras-os-cc-e-contexto-operacional). Documento da OS e documentos anteriores usam as mesmas authorities de leitura e APIs autenticadas. Não há token em storage ou QR público.

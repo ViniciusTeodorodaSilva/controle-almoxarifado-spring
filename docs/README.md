@@ -62,3 +62,9 @@ O registro da fonte oficial foi documental. A implementação incremental do Blo
 [Compras e recebimento](compras-recebimento.md): fornecedores PF/PJ, pedido único com aprovação explícita, vínculos quantitativos de necessidades, recebimento físico parcial/idempotente e entrada atômica. [Relatório final](bloco4-relatorio-final.md) registra os 84 pontos de revisão. Contratos em [API](api.md); matriz/inventário em [autenticação e autorização](autenticacao-autorizacao.md). Scripts [MySQL](sql/compras-recebimento-mysql-manual.sql) e [PostgreSQL](sql/compras-recebimento-postgresql-manual.sql) são propostas manuais não executadas. O estágio não autoriza banco externo, produção, commit ou push.
 
 - [Bloco 4 — auditoria final pré-commit](bloco4-auditoria-pre-commit.md): integridade, concorrência, segurança e evidências finais; sem commit/push.
+
+## Bloco 5 — Obras, OS e Centros de Custo
+
+[Contexto operacional e cobertura RF](obras-os-centros-custo.md): estrutura, histórico congelado, integração da demanda à compra/saída, resumos quantitativos e preparação para BI. [Relatório final](bloco5-relatorio-final.md) registra arquitetura, validação, auditoria e inventário. Scripts [MySQL](sql/obras-os-centros-custo-mysql-manual.sql) e [PostgreSQL](sql/obras-os-centros-custo-postgresql-manual.sql) são manuais e não executados. Não autoriza commit, push, merge, main ou produção.
+
+- [Bloco 5 — auditoria final pré-commit](bloco5-auditoria-pre-commit.md): revisão adversarial, correções, concorrência, segurança e evidências; sem commit/push.

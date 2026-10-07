@@ -30,6 +30,8 @@ public class MovimentacaoService {
     }
     @PreAuthorize("@autorizacao.permite('MOVIMENTACAO_LER')")
 
+    public List<Movimentacao> listar(Integer obra,Integer os,Integer cc){return repository.filtrarContexto(obra,os,cc);}
+    @PreAuthorize("@autorizacao.permite('MOVIMENTACAO_LER')")
     public List<Movimentacao> listar() {
         return repository.findAll();
     }

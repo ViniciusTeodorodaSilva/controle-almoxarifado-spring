@@ -1,3 +1,5 @@
+import { matchesContext } from '../utils/context'
+import ContextSelector, { ContextDisplay } from '../components/ContextSelector'
 import { Can, useAuth } from '../auth/AuthContext'
 import RequestDetails from './RequestDetails'
 import { requestStatuses } from '../utils/fulfillment'
@@ -51,22 +53,23 @@ export function Stocks() {
   </>
 }
 export function Requests() {
+ const [context,setContext]=useState({})
   const [status, setStatus] = useState(''), [term, setTerm] = useState(''), [creating, setCreating] = useState(false), [notice, setNotice] = useState('')
   const [params, setParams] = useSearchParams()
   const selected = params.get('solicitacaoId')
   const setSelected = id => setParams(id ? { solicitacaoId: id } : {})
-  const resource = useResource(useCallback(signal => api.requests(status, signal), [status]))
+  const resource = useResource(useCallback(signal => api.list('solicitacoes',context,signal), [context]))
   return <><PageHeader eyebrow="OPERAÇÃO" title="Solicitações" description="Acompanhe demandas, confira itens e decida o atendimento.">
     <button className="btn secondary" onClick={resource.reload}><RefreshCw size={16}/>Atualizar</button>
     <button className="btn" onClick={() => { setNotice(''); setCreating(true) }}><Plus size={16}/>Nova solicitação</button>
   </PageHeader><Notice>{notice}</Notice><Card><div className="filters">
     <SearchInput label="Pesquisar solicitações" placeholder="Número, solicitante, almoxarifado ou material…" value={term} onChange={setTerm}/>
     <select aria-label="Filtrar status" value={status} onChange={event => setStatus(event.target.value)}><option value="">Todos os status</option>{requestStatuses.map(value => <option key={value}>{value}</option>)}</select>
-  </div><ResourceView resource={resource}>{rows => <DataTable rows={filterRequests(rows, term).sort((a, b) => b.id - a.id)} columns={[
+  </div><ContextSelector filter value={context} onChange={setContext}/><ResourceView resource={resource}>{rows => <DataTable rows={filterRequests(rows, term).filter(r=>!status||r.status===status).sort((a, b) => b.id - a.id)} columns={[
     { key: 'id', label: 'Solicitação', render: row => <strong>#{row.id}</strong> },
     { key: 'solicitante', label: 'Solicitante', render: row => row.solicitante?.nome },
     { key: 'almoxarifado', label: 'Almoxarifado', render: row => row.almoxarifado?.nome },
-    { key: 'data', label: 'Data', render: row => dateTime(row.dataSolicitacao) },
+    {key:'contexto',label:'Contexto',render:r=><ContextDisplay value={r.contexto}/>}, { key: 'data', label: 'Data', render: row => dateTime(row.dataSolicitacao) },
     { key: 'status', label: 'Status', render: row => <Badge value={row.status}/> },
     { key: 'action', label: 'Ações', render: row => <button className="btn text" onClick={() => setSelected(row.id)}><Eye size={16}/>Detalhes</button> }
   ]}/>}</ResourceView></Card>
@@ -74,9 +77,10 @@ export function Requests() {
   {selected && <RequestDetails id={selected} onClose={() => setSelected(null)} onChanged={message => { setNotice(message); resource.reload() }}/>}</>
 }
 export function Movements() {
+ const [context,setContext]=useState({})
   const [params] = useSearchParams(), transferId = params.get('transferenciaId'), requestId = params.get('solicitacaoId')
   const [type, setType] = useState(''), [product, setProduct] = useState(''), [warehouse, setWarehouse] = useState(''), [term, setTerm] = useState(''), [from, setFrom] = useState(''), [to, setTo] = useState('')
-  const resource = useResource(useCallback(signal => transferId ? api.transferMovements(transferId, signal) : requestId ? api.list(`solicitacoes/${requestId}/movimentacoes`, null, signal) : api.list(type ? 'movimentacoes/tipo/' + type : 'movimentacoes', null, signal), [type, transferId, requestId]))
+  const resource = useResource(useCallback(signal => transferId ? api.transferMovements(transferId, signal) : requestId ? api.list(`solicitacoes/${requestId}/movimentacoes`, null, signal) : api.list('movimentacoes', context, signal), [context, transferId, requestId]))
   const refs = useResource(useCallback(signal => Promise.all(['produtos', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
   const dateError = from && to && from > to ? 'A data inicial deve ser anterior ou igual à data final.' : ''
   return <><PageHeader eyebrow="RASTREABILIDADE" title="Movimentações" description={transferId ? `Movimentações da transferência #${transferId}.` : requestId ? `Movimentações da solicitação #${requestId}.` : "Histórico de entradas, saídas e alterações de saldo."}><button className="btn secondary" onClick={resource.reload}><RefreshCw size={16}/>Atualizar</button></PageHeader><Card><div className="filters">
@@ -85,12 +89,12 @@ export function Movements() {
     <select aria-label="Filtrar produto" value={product} onChange={event => setProduct(event.target.value)}><option value="">Todos os produtos</option>{nameOptions(refs.data?.[0])}</select>
     <select aria-label="Filtrar almoxarifado" value={warehouse} onChange={event => setWarehouse(event.target.value)}><option value="">Todos os almoxarifados</option>{nameOptions(refs.data?.[1])}</select>
     <div className="period-filter"><Field label="De"><input type="date" value={from} onChange={event => setFrom(event.target.value)}/></Field><Field label="Até"><input type="date" value={to} onChange={event => setTo(event.target.value)}/></Field></div>
-  </div><Notice error>{dateError || (refs.error ? 'Filtros indisponíveis: ' + refs.error.message : '')}</Notice>
-  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).filter(row => (!type || row.tipo === type) && (!params.get('pedidoCompraId') || String(row.pedidoCompraId) === params.get('pedidoCompraId')) && (!params.get('recebimentoCompraId') || String(row.recebimentoCompraId) === params.get('recebimentoCompraId'))).sort((a, b) => b.id - a.id)} columns={[
+  </div><ContextSelector filter value={context} onChange={setContext}/><Notice error>{dateError || (refs.error ? 'Filtros indisponíveis: ' + refs.error.message : '')}</Notice>
+  <ResourceView resource={resource}>{rows => <DataTable rows={dateError ? [] : filterMovements(rows, { term, product, warehouse, from, to }).filter(row => matchesContext(row.contexto,context) && (!type || row.tipo === type) && (!params.get('pedidoCompraId') || String(row.pedidoCompraId) === params.get('pedidoCompraId')) && (!params.get('recebimentoCompraId') || String(row.recebimentoCompraId) === params.get('recebimentoCompraId'))).sort((a, b) => b.id - a.id)} columns={[
     { key: 'tipo', label: 'Tipo', render: row => <Badge value={row.tipo}/> },
     { key: 'codigo', label: 'Código', render: row => <span className="code">{row.produto?.codigo || '—'}</span> },
     { key: 'produto', label: 'Material', render: row => row.produto?.nome },
-    { key: 'local', label: 'Almoxarifado', render: row => row.almoxarifado?.nome },
+    {key:'contexto',label:'Contexto',render:r=><ContextDisplay value={r.contexto}/>}, { key: 'local', label: 'Almoxarifado', render: row => row.almoxarifado?.nome },
     { key: 'quantidade', label: 'Quantidade', render: row => quantity(row.quantidade) },
     { key: 'saldoAnterior', label: 'Saldo anterior', render: row => quantity(row.saldoAnterior) },
     { key: 'saldoPosterior', label: 'Saldo posterior', render: row => quantity(row.saldoPosterior) },

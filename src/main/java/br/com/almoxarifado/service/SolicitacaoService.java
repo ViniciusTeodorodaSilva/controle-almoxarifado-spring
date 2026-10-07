@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 @org.springframework.transaction.annotation.Transactional
 public class SolicitacaoService {
 
+    @org.springframework.beans.factory.annotation.Autowired private br.com.almoxarifado.obras.ContextoService contextos;
     private final SolicitacaoRepository repository;
     private final ItemSolicitacaoRepository itemSolicitacaoRepository;
     private final AlmoxarifadoRepository almoxarifadoRepository;
@@ -37,7 +38,8 @@ public class SolicitacaoService {
         this.movimentacaoRepository = movimentacaoRepository;
     }
     @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
-
+    public List<Solicitacao> listar(Integer obra,Integer os,Integer cc){return repository.filtrarContexto(obra,os,cc);}
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_LER')")
     public List<Solicitacao> listar() {
         return repository.findAll();
     }
@@ -53,6 +55,12 @@ public class SolicitacaoService {
             Integer solicitanteId,
             Integer almoxarifadoId) {
 
+        return cadastrar(solicitanteId,almoxarifadoId,null,null,null);
+    }
+    @PreAuthorize("@autorizacao.permite('SOLICITACAO_CRIAR')")
+    @Auditar("SOLICITACAO_CADASTRAR")
+    public Solicitacao cadastrar(Integer solicitanteId,Integer almoxarifadoId,Integer obraId,Integer ordemServicoId,Integer centroCustoId) {
+        var contexto=contextos.resolver(obraId,ordemServicoId,centroCustoId);
         if (solicitanteId == null || almoxarifadoId == null) {
             throw new IllegalArgumentException("Solicitante e almoxarifado devem ser informados");
         }
@@ -66,6 +74,7 @@ public class SolicitacaoService {
 
         Solicitacao solicitacao = new Solicitacao();
 
+        solicitacao.setContexto(contexto);
         solicitacao.setSolicitante(solicitante);
         solicitacao.setAlmoxarifado(almoxarifado);
         solicitacao.setStatus(StatusSolicitacao.PENDENTE);

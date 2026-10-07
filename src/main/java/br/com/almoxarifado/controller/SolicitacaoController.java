@@ -21,8 +21,8 @@ public class SolicitacaoController {
     }
 
     @GetMapping
-    public List<Solicitacao> listar() {
-        return service.listar();
+    public List<Solicitacao> listar(@RequestParam(required=false) Integer obraId,@RequestParam(required=false) Integer ordemServicoId,@RequestParam(required=false) Integer centroCustoId) {
+        return service.listar(obraId,ordemServicoId,centroCustoId);
     }
 
     @GetMapping("/{id}")
@@ -33,11 +33,11 @@ public class SolicitacaoController {
     @PostMapping
     public Solicitacao cadastrar(
             @RequestParam Integer solicitanteId,
-            @RequestParam Integer almoxarifadoId) {
+            @RequestParam Integer almoxarifadoId, @RequestParam(required=false) Integer obraId,@RequestParam(required=false) Integer ordemServicoId,@RequestParam(required=false) Integer centroCustoId) {
 
         return service.cadastrar(
                 solicitanteId,
-                almoxarifadoId
+                almoxarifadoId,obraId,ordemServicoId,centroCustoId
         );
     }
 

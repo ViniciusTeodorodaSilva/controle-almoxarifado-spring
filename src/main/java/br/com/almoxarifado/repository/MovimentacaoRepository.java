@@ -14,4 +14,7 @@ public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Inte
     @org.springframework.data.jpa.repository.Query("select m from Movimentacao m where m.transferencia.id = :transferenciaId order by m.id")
     java.util.List<Movimentacao> findByTransferenciaIdOrderByIdAsc(@org.springframework.data.repository.query.Param("transferenciaId") Integer transferenciaId);
     boolean existsByProdutoId(Integer produtoId);
+ @org.springframework.data.jpa.repository.EntityGraph(attributePaths={"produto","produto.unidadeMedidaConfigurada","almoxarifado","solicitante","responsavel","itemRecebimentoCompra","itemRecebimentoCompra.recebimento","itemRecebimentoCompra.recebimento.pedido"})
+ @org.springframework.data.jpa.repository.Query("select m from Movimentacao m where (:obra is null or m.contexto.obraId=:obra) and (:os is null or m.contexto.ordemServicoId=:os) and (:cc is null or m.contexto.centroCustoId=:cc) order by m.id desc")
+ java.util.List<Movimentacao> filtrarContexto(Integer obra,Integer os,Integer cc);
 }

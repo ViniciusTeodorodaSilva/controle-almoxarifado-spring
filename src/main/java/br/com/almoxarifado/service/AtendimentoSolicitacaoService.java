@@ -127,7 +127,7 @@ public class AtendimentoSolicitacaoService {
             double depois=QuantidadesOperacionais.subtrair(antes,qtd);
             if(!Double.isFinite(depois)||depois<0||depois==antes) throw new IllegalArgumentException("Quantidade excede a precisão do saldo do item");
             estoque.setQuantidade(depois); estoques.save(estoque);
-            var m=new Movimentacao(); m.setSolicitacao(s); m.setAtendimento(atendimento); m.setProduto(item.getProduto()); m.setAlmoxarifado(s.getAlmoxarifado());
+            var m=new Movimentacao(); m.setContexto(s.getContexto()); m.setSolicitacao(s); m.setAtendimento(atendimento); m.setProduto(item.getProduto()); m.setAlmoxarifado(s.getAlmoxarifado());
             m.setSolicitante(s.getSolicitante()); m.setResponsavel(responsavel); m.setTipo(TipoMovimentacao.SAIDA); m.setQuantidade(qtd);
             m.setSaldoAnterior(antes); m.setSaldoPosterior(depois); m.setDataHora(atendimento.getDataHora()); movimentos.save(m);
             item.setQuantidadeAtendida(atendida); itens.save(item); view.atendidas().put(item.getId(),atendida);
@@ -208,7 +208,7 @@ public class AtendimentoSolicitacaoService {
         }
         return new OperacaoSolicitacaoResponse(s.getId(),view.status().name(),s.getStatus().name(),view.aviso()!=null?"INCONSISTENTE":view.legado()?"RECONHECIDA":"ATUAL",
             view.aviso()!=null?view.aviso():view.legado()?"Atendimento legado reconhecido pelas saídas vinculadas. Histórico original preservado.":null,
-            referencia(s.getSolicitante()),referencia(s.getAlmoxarifado()),s.getDataSolicitacao(),referencia(s.getResponsavelAprovacao()),s.getDataAprovacao(),referencia(s.getResponsavelSeparacao()),s.getDataSeparacao(),detalhes);
+            referencia(s.getSolicitante()),referencia(s.getAlmoxarifado()),s.getDataSolicitacao(),referencia(s.getResponsavelAprovacao()),s.getDataAprovacao(),referencia(s.getResponsavelSeparacao()),s.getDataSeparacao(),detalhes,s.getContexto());
     }
     static OperacaoSolicitacaoResponse.Produto produto(Produto p) {
         if(p==null) return null;

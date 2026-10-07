@@ -19,8 +19,8 @@ public class MovimentacaoController {
     }
 
     @GetMapping
-    public List<Movimentacao> listar() {
-        return service.listar();
+    public List<Movimentacao> listar(@RequestParam(required=false) Integer obraId,@RequestParam(required=false) Integer ordemServicoId,@RequestParam(required=false) Integer centroCustoId) {
+        return service.listar(obraId,ordemServicoId,centroCustoId);
     }
 
     @GetMapping("/{id}")

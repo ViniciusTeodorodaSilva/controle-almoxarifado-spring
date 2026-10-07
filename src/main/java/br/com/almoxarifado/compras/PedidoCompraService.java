@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class PedidoCompraService {
+ @org.springframework.beans.factory.annotation.Autowired private br.com.almoxarifado.obras.ContextoService contextos;
 
   @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
@@ -163,7 +164,20 @@ public class PedidoCompraService {
       LocalDate ate,
       int pagina,
       int tamanho) {
+    return listar(numero,fornecedorId,status,produtoId,necessidadeId,de,ate,pagina,tamanho,null,null,null);
+  }
+  @PreAuthorize("@autorizacao.permite('COMPRA_LER')") @Transactional(readOnly=true)
+  public Page<Map<String,Object>> listar(String numero,Integer fornecedorId,StatusPedidoCompra status,Integer produtoId,Integer necessidadeId,LocalDate de,LocalDate ate,int pagina,int tamanho,Integer obraId,Integer ordemServicoId,Integer centroCustoId) {
     Specification<PedidoCompra> s = (r, q, c) -> c.conjunction();
+    if(obraId!=null || ordemServicoId!=null || centroCustoId!=null) s=s.and((r,q,c)->{
+      q.distinct(true);var item=r.join("itens");var allocation=item.join("alocacoes",jakarta.persistence.criteria.JoinType.LEFT);var need=allocation.join("necessidade",jakarta.persistence.criteria.JoinType.LEFT);var demand=need.join("solicitacao",jakarta.persistence.criteria.JoinType.LEFT);
+      var manual=new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();var source=new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+      for(var pair: java.util.List.of(new Object[]{"obraId",obraId},new Object[]{"ordemServicoId",ordemServicoId},new Object[]{"centroCustoId",centroCustoId})) {
+        String field=(String)pair[0];Integer value=(Integer)pair[1];if(value==null)continue;
+        manual.add(c.equal(item.get("contexto").get(field),value));source.add(c.equal(demand.get("contexto").get(field),value));
+      }
+      return c.and(c.isTrue(item.get("ativo")),c.or(c.and(manual.toArray(jakarta.persistence.criteria.Predicate[]::new)),c.and(source.toArray(jakarta.persistence.criteria.Predicate[]::new))));
+    });
     if (numero != null && !numero.isBlank())
       s =
           s.and(
@@ -277,6 +291,9 @@ public class PedidoCompraService {
         || in.getItens().isEmpty()
         || in.getItens().size() > 500)
       throw new IllegalArgumentException("Fornecedor, destino e 1 a 500 itens são obrigatórios");
+    var contextosManuais=new java.util.IdentityHashMap<ComprasInput.Item,br.com.almoxarifado.obras.ContextoOperacional>();
+    var snapshots=contextos.resolverTodos(in.getItens().stream().filter(it->it!=null && it.contexto!=null).map(it->it.contexto).toList());
+    for(var it:in.getItens()) if(it!=null && it.contexto!=null) contextosManuais.put(it,snapshots.get(it.contexto));
     var ids = new TreeSet<Integer>();
     for (var i : in.getItens()) {
       if (i == null || i.produtoId == null)
@@ -320,6 +337,7 @@ public class PedidoCompraService {
       entityManager.refresh(pr, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
       if (!pr.isAtivo()) throw new ConflitoException("Produto inativo");
       var i = new ItemPedidoCompra();
+      i.setContexto(contextosManuais.get(input));
       i.setPedido(p);
       i.setProduto(pr);
       i.setCodigo(pr.getCodigo() == null ? "P-" + pr.getId() : pr.getCodigo());
@@ -375,6 +393,7 @@ public class PedidoCompraService {
           destinado = ComprasViews.decimal(destinado, q, true);
         }
       i.setQuantidadeEstoque(ComprasViews.decimal(i.getQuantidadePedida(), destinado, false));
+      if(i.getContexto()!=null && i.getQuantidadeEstoque()<=0) throw new IllegalArgumentException("Contexto manual exige quantidade para estoque; alocações conservam suas origens próprias");
       if (i.getQuantidadeEstoque() < 0)
         throw new IllegalArgumentException("Vínculos excedem quantidade pedida");
       if (i.getQuantidadeEstoque() > 0 && !Boolean.TRUE.equals(input.paraEstoque))
