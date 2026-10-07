@@ -8,16 +8,17 @@ const groups = [
   ['VISÃO GERAL', [['/dashboard','Dashboard',LayoutDashboard]]],
   ['OPERAÇÃO', [['/solicitacoes','Solicitações',ClipboardList],['/estoques','Estoque',Warehouse],['/transferencias','Transferências',ArrowLeftRight],['/movimentacoes','Movimentações',ArrowLeftRight]]],
   ['COMPRAS', [['/necessidades-compra','Necessidades de compra',ShoppingCart],['/pedidos-compra','Pedidos de compra',ShoppingCart],['/fornecedores','Fornecedores',Building2]]],
+  ['ATIVOS', [['/ativos','Ferramentas e equipamentos',Wrench],['/emprestimos','Empréstimos',ClipboardList],['/transferencias-ativos','Transferências de ativos',ArrowLeftRight],['/inspecoes-ativos','Inspeções',ClipboardCheck]]],
   ['CATÁLOGO', [['/produtos','Produtos',Package],['/categorias','Categorias',Tags],['/unidades','Unidades de medida',Ruler]]],
   ['ESTRUTURA', [['/obras','Obras',HardHat],['/ordens-servico','Ordens de serviço',ClipboardList],['/centros-custo','Centros de custo',Building2],['/almoxarifados','Almoxarifados',Building2],['/funcionarios','Funcionários',Users]]],
-  ['PRÓXIMOS MÓDULOS', [[null,'Ferramentas',Wrench],[null,'Inventário',ClipboardCheck]]]
+  ['PRÓXIMOS MÓDULOS', [[null,'Inventário',ClipboardCheck]]]
 ]
 export default function AppShell() {
   const [open, setOpen] = useState(false)
   const auth = useAuth()
   const [logoutError, setLogoutError] = useState('')
   const location = useLocation()
-  const current = location.pathname === '/usuarios' ? 'Usuários' : groups.flatMap(group => group[1]).find(item => item[0] === location.pathname)?.[1] || 'BES'
+  const current = location.pathname === '/usuarios' ? 'Usuários' : groups.flatMap(group => group[1]).find(item => item[0] && (item[0] === location.pathname || location.pathname.startsWith(`${item[0]}/`)))?.[1] || 'BES'
   return <div className="app-shell"><a className="skip-link" href="#content">Ir para conteúdo</a>
     {open && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setOpen(false)}/>}
     <aside className={`sidebar ${open ? 'is-open' : ''}`} aria-label="Menu principal">

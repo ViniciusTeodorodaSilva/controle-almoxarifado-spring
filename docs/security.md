@@ -53,3 +53,13 @@ npm audit não encontrou vulnerabilidades nesta rodada. Maven foi revisado por d
 - npm audit: zero vulnerabilidades em todas as severidades; dependency:tree Maven concluído, sem auditoria de CVEs do backend.
 - Scan heurístico dos arquivos atuais, novos e texto dos documentos Word: nenhum token, chave privada ou credencial adicional identificado. Nenhuma ocorrência da senha antiga nos arquivos atuais candidatos a versionamento. Fixtures H2, placeholders e variáveis de autenticação do wrapper Maven não são credenciais reais adicionadas.
 - Sem acesso ao MySQL/produção, alteração de main, staging, commit, push, rotação ou reescrita histórica. A baseline permanece para revisão; não autoriza implantação pública.
+
+
+## Bloco 6 - custodia de ativos
+
+18 handlers permissionados em HTTP e service, oito novas authorities, CSRF nas escritas e DTOs estritos. Estado, evento, chave de idempotencia e auditoria sao atomicos. Sem upload, QR publico ou assinatura juridica. Politica de leitura por modulo, sem isolamento por Obra; ID nao substitui authority. Scripts MySQL/PostgreSQL manuais nao executados; somente H2 nos testes. Security gate e homologacao continuam necessarios antes de producao. [Regras e limites](ferramentas-equipamentos.md).
+## Evidências e pendências transversais da auditoria de ativos
+
+Assinatura idempotente diferencia nulo e texto literal; leitura continua permissionada por módulo. Regressões cobrem os 18 handlers nos quatro perfis, as oito escritas com CSRF/mass assignment e reversão de estado/evento/chave quando a auditoria falha. Nenhuma nova dependência, authority ou rota pública foi criada na auditoria. [Relatório](bloco6-auditoria-pre-commit.md).
+
+Antes de produção permanecem: rotação comprovada de credenciais históricas comprometidas (não realizada nesta rodada), configuração externa, HTTPS/proxy, homologação de dialect/locks/constraints e migração autorizada, backup e restauração testados, observabilidade/retenção de logs, revisão operacional de sessões/rate limiting e SCA do backend. Zero no npm audit não substitui esses gates. QR autenticado, upload seguro de evidências e logo oficial permanecem pendentes funcionais, sem atalhos públicos ou assets inventados.

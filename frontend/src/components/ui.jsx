@@ -1,12 +1,13 @@
 import { cloneElement, useEffect, useId, useRef } from 'react'
 import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react'
+import { assetLabel } from '../utils/assets'
 export function PageHeader({ eyebrow = 'PLATAFORMA BES', title, description, children }) {
   return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{description && <p className="description">{description}</p>}</div><div className="page-actions">{children}</div></div>
 }
 export function Card({ children, className = '' }) { return <section className={`card ${className}`}>{children}</section> }
 export function Badge({ value }) {
   const labels = { EM_COMPRA: 'Em compra', RASCUNHO: 'Rascunho', AGUARDANDO_APROVACAO: 'Aguardando aprovação', APROVADO: 'Aprovado', PARCIALMENTE_RECEBIDO: 'Parcialmente recebido', RECEBIDO: 'Recebido', CANCELADO: 'Cancelado', EM_SEPARACAO: 'Em separação', PARCIALMENTE_ATENDIDA: 'Parcialmente atendida', ATENDIDA: 'Atendida', ABERTA: 'Aberta', CANCELADA: 'Cancelada', NORMAL: 'Normal', BAIXO: 'Baixo', ZERADO: 'Zerado', CONCLUIDA: 'Concluída', PENDENTE: 'Pendente', APROVADA: 'Aprovada', REJEITADA: 'Rejeitada', ENTRADA: 'Entrada', SAIDA: 'Saída', true: 'Ativo', false: 'Inativo' }
-  return <span className={`badge badge-${String(value).toLowerCase()}`}>{labels[String(value)] || value || '—'}</span>
+  return <span className={`badge badge-${String(value).toLowerCase()}`}>{labels[String(value)] || assetLabel(value)}</span>
 }
 export function LoadingState() { return <div className="state" role="status"><LoaderCircle className="animate-spin" size={24}/><strong>Carregando informações…</strong></div> }
 export function EmptyState({ message = 'Nenhum registro encontrado.', children }) { return <div className="state"><Inbox size={30}/><strong>{message}</strong><p>Cadastre um registro ou ajuste os filtros para começar.</p>{children}</div> }

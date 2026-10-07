@@ -1,5 +1,9 @@
 # Plataforma BES — referência oficial para desenvolvimento
 
+## Ferramentas e equipamentos — Bloco 6
+
+Consultar [ativos e custódia](docs/ferramentas-equipamentos.md). Ativo individual não altera saldo de Produto. Uma pendência por ativo; devolução/chegada são eventos novos que fecham origem única. Contexto usa snapshots do Bloco 5. Locks: Obra → CC → OS quando necessários → ativo; nunca adquirir estrutura depois do ativo nem misturar locks de estoque/pedido/demanda. Condição, situação administrativa e reprovação são separadas. Dano não atribui culpa automática. Operações críticas exigem authority no HTTP/service, CSRF, ator autenticado, auditoria atômica e chave de idempotência. Sem DELETE, manutenção/financeiro/QR/anexos completos, scripts reais, produção, commit ou push nesta rodada.
+
 A documentação mestre funcional atual é [Documentação Mestre BES v1.4](docs/Documentacao_Mestre_Plataforma_BES_v1_4.docx), com escopo **RF001–RF218**. A v1.4 substitui a v1.3 como principal referência; preservar os requisitos, decisões e roadmap anteriores compatíveis. O índice de documentação está em [docs/README.md](docs/README.md).
 
 Antes de cada bloco:
@@ -39,3 +43,6 @@ Pedido com qualquer recebimento não pode ser cancelado neste estágio. Não inf
 Consultar [contexto operacional](docs/obras-os-centros-custo.md). Obra do CC e Obra/CC da OS são imutáveis desde criação. Solicitação congela IDs/nomes/códigos; necessidade/alocação derivam dessa origem; atendimento congela o contexto na SAÍDA. Compra multiobra conserva contexto por alocação e contexto manual somente na quantidade sem alocação do item, nunca um obraId global no pedido. ENTRADA de recebimento não é consumo/custo da obra. Não calcular custo consumido sem método de valorização aprovado.
 
 Estrutura/contexto bloqueiam Obra → CC → OS; não bloqueiam estoque/pedido/demanda ao encerrar cadastros. Preservar protocolos do Bloco 4 e de atendimento. Inativo/encerrado continua legível; nova demanda exige contexto admissível. Scripts manuais não executados, sem backfill de contexto fictício. O Bloco 5 não autoriza financeiro, BI integrado, bancos reais, publicação ou commits.
+## Bloco 6 — regras confirmadas em auditoria
+
+Consultar [ativos](docs/ferramentas-equipamentos.md) e [auditoria](docs/bloco6-auditoria-pre-commit.md). Empréstimo para Obra confirmado efetiva essa localização e limpa almoxarifado atual; devolução padrão restaura origem congelada. Transferência mantém origem até chegada. Idempotência deve distinguir nulo de texto literal. Inspeção é concluída sem evento de fechamento; baixado não gera agenda pendente. Preservar locks contexto → ativo, snapshots e atomicidade de estado/evento/chave/auditoria. Preparação de QR/anexos/manutenção não significa requisito concluído.

@@ -1,5 +1,8 @@
 # Documentação da Plataforma BES
 
+- [Ferramentas, equipamentos e custódia — Bloco 6](ferramentas-equipamentos.md): domínio, fluxos, segurança, RFs, documentos e limites.
+- [Relatório final — Bloco 6](bloco6-relatorio-final.md): evidências e resposta aos 84 pontos solicitados.
+
 ## Fonte mestre oficial atual
 
 Desde 04/10/2026, a [Documentação Mestre Plataforma BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx) é a **referência funcional oficial principal**, abrangendo **RF001–RF218**. Ela substitui a v1.3 como fonte mestre sem descartar requisitos, decisões ou roadmap anteriores compatíveis.
@@ -68,3 +71,4 @@ O registro da fonte oficial foi documental. A implementação incremental do Blo
 [Contexto operacional e cobertura RF](obras-os-centros-custo.md): estrutura, histórico congelado, integração da demanda à compra/saída, resumos quantitativos e preparação para BI. [Relatório final](bloco5-relatorio-final.md) registra arquitetura, validação, auditoria e inventário. Scripts [MySQL](sql/obras-os-centros-custo-mysql-manual.sql) e [PostgreSQL](sql/obras-os-centros-custo-postgresql-manual.sql) são manuais e não executados. Não autoriza commit, push, merge, main ou produção.
 
 - [Bloco 5 — auditoria final pré-commit](bloco5-auditoria-pre-commit.md): revisão adversarial, correções, concorrência, segurança e evidências; sem commit/push.
+- [Bloco 6 — auditoria adversarial pré-commit](bloco6-auditoria-pre-commit.md): correções, regressões, revisão visual e relatório de 88 pontos; sem commit/publicação/banco real.

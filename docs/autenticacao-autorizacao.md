@@ -240,3 +240,34 @@ Todos os 17 handlers abaixo são permissionados; as 8 escritas exigem sessão/CS
 | PUT | `/centros-custo/{id}` | Não | Sim | `CENTRO_CUSTO_GERENCIAR` | Sim |
 
 Estrutura não tem DELETE. Transições são endpoints específicos `/status`, com máquina de estados server-side e rollback se auditoria falhar. Histórico mantém snapshots, FKs e identificação de ator; não há contextos fictícios. Eventos e regras em [Bloco 5](obras-os-centros-custo.md); contratos e entradas em [API](api.md#bloco-5--obras-os-cc-e-contexto-operacional). Documento da OS e documentos anteriores usam as mesmas authorities de leitura e APIs autenticadas. Não há token em storage ou QR público.
+
+
+## Bloco 6 - ativos individuais
+
+ADMIN/GESTOR gerenciam as quatro áreas. ALMOXARIFE lê todas e gerencia empréstimo/transferência/inspeção, sem ATIVO_GERENCIAR. CONSULTA apenas lê. Histórico de ativo usa ATIVO_LER; comprovante usa authority da operação. Política por módulo, sem isolamento por Obra/funcionário. Sessão/CSRF preservados; nenhum token em storage. Service de registros seleciona authority pelo tipo. Auditoria separa ator de funcionário; rollback cobre estado/evento/chave/auditoria. [Regras e limites](ferramentas-equipamentos.md).
+
+18 handlers permissionados, 8 escritas; inventario total: 120 handlers e 52 escritas. Nenhum endpoint operacional publico.
+
+| Metodo | Rota | Classificacao | Authority HTTP/service | CSRF |
+|---|---|---|---|---|
+| GET | `/ativos` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/resumo` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/{id}` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/{id}/historico` | Permissionado | `ATIVO_LER` | Nao |
+| POST | `/ativos` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| PUT | `/ativos/{id}` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| PUT | `/ativos/{id}/situacao` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| GET | `/emprestimos` | Permissionado | `EMPRESTIMO_LER` | Nao |
+| GET | `/emprestimos/{id}` | Permissionado | `EMPRESTIMO_LER` | Nao |
+| POST | `/emprestimos` | Permissionado | `EMPRESTIMO_GERENCIAR` | Sim |
+| GET | `/transferencias-ativos` | Permissionado | `TRANSFERENCIA_ATIVO_LER` | Nao |
+| GET | `/transferencias-ativos/{id}` | Permissionado | `TRANSFERENCIA_ATIVO_LER` | Nao |
+| POST | `/transferencias-ativos` | Permissionado | `TRANSFERENCIA_ATIVO_GERENCIAR` | Sim |
+| GET | `/inspecoes-ativos` | Permissionado | `INSPECAO_ATIVO_LER` | Nao |
+| GET | `/inspecoes-ativos/{id}` | Permissionado | `INSPECAO_ATIVO_LER` | Nao |
+| POST | `/inspecoes-ativos` | Permissionado | `INSPECAO_ATIVO_GERENCIAR` | Sim |
+| POST | `/emprestimos/{id}/devolucao` | Permissionado | `EMPRESTIMO_GERENCIAR` | Sim |
+| POST | `/transferencias-ativos/{id}/recebimento` | Permissionado | `TRANSFERENCIA_ATIVO_GERENCIAR` | Sim |
+## Auditoria adversarial de ativos — Bloco 6
+
+Os 18 handlers foram exercitados com payloads válidos nos quatro perfis; as oito escritas também foram cobertas contra CSRF ausente e campos internos forjados. HTTP e service mantêm a matriz declarada. Leitura permissionada é por módulo, sem segregação por Obra; não declarar isolamento que não existe. IDs inexistentes e tipos incorretos não concedem acesso. Rollback de auditoria foi ampliado para transferência, chegada, devolução, inspeção e baixa. [Relatório e limites](bloco6-auditoria-pre-commit.md).

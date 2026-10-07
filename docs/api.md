@@ -325,3 +325,46 @@ GET `/resumo` retorna `cadastro`, `quantidadeSolicitacoes`, `quantidadeNecessida
 Escritas usam DTO estrito em todos os níveis e rejeitam campo interno/ator/status fora da ação de transição. Erros: 400 entrada inválida, 401 identidade, 403 permissão/CSRF, 404 referência, 409 estado/integridade/concorrência. Sucesso segue padrão 200. Criação de estrutura não tem chave persistida de idempotência; em resposta incerta consultar listagem antes de repetir. Unique protege código/número; transição terminal repetida é 409.
 
 Documentos frontend: `/ordens-servico/{id}/documento`, lista de separação, pedido e comprovante exibem contextos reais. Não há endpoint público de PDF/BI/QR. Scripts manuais, cobertura RF e limites: [Bloco 5](obras-os-centros-custo.md).
+
+
+## Bloco 6 - ativos individuais
+
+Contratos e regras: [ferramentas e equipamentos](ferramentas-equipamentos.md). Sucessos 200; erros 400/401/403/404/409 conforme entrada/identidade/permissão/referência/estado. IDs operacionais INT, ator Long derivado do servidor.
+
+POST `/ativos`: `{cadastro:{codigoPatrimonial?,nome,descricao?,fabricante?,modelo?,numeroSerie?,categoriaId?,dataAquisicao?,observacao?},almoxarifadoId,condicao,proximaInspecao?}`. PUT `/ativos/{id}` recebe somente campos de `cadastro`; código patrimonial imutável. PUT `/ativos/{id}/situacao`: `{acao:INATIVACAO|REATIVACAO|BAIXA,responsavelId,motivo}`.
+
+POST `/emprestimos`: `{ativoId,entreguePorId,funcionarioId,contexto?:{obraId?,ordemServicoId?,centroCustoId?},condicao,previsaoDevolucao?,observacao?}`. POST `/emprestimos/{id}/devolucao`: `{devolvidoPorId,recebidoPorId,almoxarifadoId?,condicao,observacao?}`; ID é do empréstimo, não do ativo.
+
+POST `/transferencias-ativos`: `{ativoId,entreguePorId,almoxarifadoId?,contexto?,condicao,observacao?}`; destino exclusivo almoxarifado/Obra. POST `/transferencias-ativos/{id}/recebimento`: `{recebidoPorId,condicao,observacao?}`. POST `/inspecoes-ativos`: `{ativoId,inspetorId,condicao,resultado:APROVADO|APROVADO_COM_RESSALVA|REPROVADO,proximaInspecao?,observacao?}`. Esses comandos e `/situacao` exigem `Idempotency-Key`; cadastro/edição não o persistem. Datas ISO LocalDate, horário do servidor LocalDateTime. DTOs estritos, inclusive contexto.
+
+Listas/histórico: envelope paginado `content,totalElements,totalPages,number,size,first,last`, pagina=0/tamanho=20 (máximo 100), ID desc. Ativos: `termo,status,condicao,categoriaId,funcionarioId,almoxarifadoId,obraId,ordemServicoId,centroCustoId,ativo,inspecaoPendente`. Registros: `ativoId,funcionarioId,obraId,ordemServicoId,centroCustoId,aberto,vencido,de,ate`; contexto de destino na mesma linha; período inclusivo. `vencido=true` exige aberto e previsão anterior a hoje. Detalhe de operação acrescenta `encerramento,aberto,vencido`; tipo incorreto retorna 404. Sem entidades, chave/hash ou versão nas respostas.
+
+Resumo: `emprestimosAbertos,emprestimosVencidos,indisponiveis,inspecoesPendentes`. Documentos protegidos frontend: `/ativos/{id}/ficha`, `/emprestimos/{id}/documento`, `/transferencias-ativos/{id}/documento`; usam as mesmas APIs permissionadas, sem endpoint PDF/QR público.
+
+18 handlers permissionados, 8 escritas; inventario total: 120 handlers e 52 escritas. Nenhum endpoint operacional publico.
+
+| Metodo | Rota | Classificacao | Authority HTTP/service | CSRF |
+|---|---|---|---|---|
+| GET | `/ativos` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/resumo` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/{id}` | Permissionado | `ATIVO_LER` | Nao |
+| GET | `/ativos/{id}/historico` | Permissionado | `ATIVO_LER` | Nao |
+| POST | `/ativos` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| PUT | `/ativos/{id}` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| PUT | `/ativos/{id}/situacao` | Permissionado | `ATIVO_GERENCIAR` | Sim |
+| GET | `/emprestimos` | Permissionado | `EMPRESTIMO_LER` | Nao |
+| GET | `/emprestimos/{id}` | Permissionado | `EMPRESTIMO_LER` | Nao |
+| POST | `/emprestimos` | Permissionado | `EMPRESTIMO_GERENCIAR` | Sim |
+| GET | `/transferencias-ativos` | Permissionado | `TRANSFERENCIA_ATIVO_LER` | Nao |
+| GET | `/transferencias-ativos/{id}` | Permissionado | `TRANSFERENCIA_ATIVO_LER` | Nao |
+| POST | `/transferencias-ativos` | Permissionado | `TRANSFERENCIA_ATIVO_GERENCIAR` | Sim |
+| GET | `/inspecoes-ativos` | Permissionado | `INSPECAO_ATIVO_LER` | Nao |
+| GET | `/inspecoes-ativos/{id}` | Permissionado | `INSPECAO_ATIVO_LER` | Nao |
+| POST | `/inspecoes-ativos` | Permissionado | `INSPECAO_ATIVO_GERENCIAR` | Sim |
+| POST | `/emprestimos/{id}/devolucao` | Permissionado | `EMPRESTIMO_GERENCIAR` | Sim |
+| POST | `/transferencias-ativos/{id}/recebimento` | Permissionado | `TRANSFERENCIA_ATIVO_GERENCIAR` | Sim |
+## Auditoria dos contratos de ativos — Bloco 6
+
+Sem novos handlers nesta auditoria. Nas listagens de registros de ativos, `aberto` e `vencido` são campos de resposta calculados em lote. `aberto`/`vencido` são filtros cumulativos; inspeções são concluídas sem evento de fechamento. `aberto=false&vencido=true` não transforma um empréstimo fechado em vencido. Inspeção pendente exclui BAIXADO em todos os canais. A pesquisa textual de ativos interpreta `%`, `_` e barra invertida como caracteres literais.
+
+Empréstimo com Obra confirmada efetiva a localização nesse contexto e limpa o almoxarifado atual; a origem congelada permanece no registro e é restaurada por devolução sem outro destino. Transferência efetiva localização somente na chegada. Observações/descrições longas admitem LF/CR/TAB, sem admitir outros controles nem ampliar campos curtos. Idempotência diferencia nulo de texto literal `<null>`. Campos internos e snapshots continuam somente de resposta. [Evidências da auditoria](bloco6-auditoria-pre-commit.md).

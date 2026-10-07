@@ -9,7 +9,7 @@ final class RotasPermissao {
   if(path.equals("/auth/me")&&(method.equals("GET")||method.equals("HEAD")) || path.equals("/auth/logout")&&method.equals("POST"))return auth.autenticado();
   String root=path.split("/")[1]; String permission=null;
   boolean read=method.equals("GET")||method.equals("HEAD");
-  String prefix=switch(root){case "obras"->"OBRA";case "ordens-servico"->"ORDEM_SERVICO";case "centros-custo"->"CENTRO_CUSTO";case "produtos"->"PRODUTO";case "categorias"->"CATEGORIA";case "unidades-medida"->"UNIDADE";case "funcionarios"->"FUNCIONARIO";case "almoxarifados"->"ALMOXARIFADO";default->null;};
+  String prefix=switch(root){case "ativos"->"ATIVO";case "emprestimos"->"EMPRESTIMO";case "transferencias-ativos"->"TRANSFERENCIA_ATIVO";case "inspecoes-ativos"->"INSPECAO_ATIVO";case "obras"->"OBRA";case "ordens-servico"->"ORDEM_SERVICO";case "centros-custo"->"CENTRO_CUSTO";case "produtos"->"PRODUTO";case "categorias"->"CATEGORIA";case "unidades-medida"->"UNIDADE";case "funcionarios"->"FUNCIONARIO";case "almoxarifados"->"ALMOXARIFADO";default->null;};
   if(prefix!=null)permission=read?prefix+"_LER":method.equals("POST")||method.equals("PUT")?prefix+"_GERENCIAR":null;
   else if(root.equals("fornecedores"))permission=read?"FORNECEDOR_LER":method.equals("POST")||method.equals("PUT")?"FORNECEDOR_GERENCIAR":null;
   else if(root.equals("recebimentos-compra"))permission=read?"RECEBIMENTO_LER":null;
