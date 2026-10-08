@@ -104,6 +104,38 @@ class ObrasTests {
     os = estrutura.salvarOrdem(null, oi);
   }
 
+  @Test
+  void investigacaoAtivacaoHttpComDetalheEResumoSimultaneos() throws Exception {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    var pool = Executors.newFixedThreadPool(3);
+    try {
+      for (int tentativa = 0; tentativa < 30; tentativa++) {
+        var nova = estrutura.salvarObra(null, obraInput());
+        var start = new CountDownLatch(1);
+        var tasks = new ArrayList<Future<Integer>>();
+        for (String operacao : List.of("detalhe", "resumo", "ativar")) {
+          tasks.add(pool.submit(() -> {
+            start.await();
+            var request = operacao.equals("ativar")
+                ? put("/obras/" + nova.getId() + "/status").with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"ATIVA\"}")
+                : get("/obras/" + nova.getId() + (operacao.equals("resumo") ? "/resumo" : ""));
+            return mvc.perform(request.with(authentication(authentication)))
+                .andReturn().getResponse().getStatus();
+          }));
+        }
+        start.countDown();
+        for (var task : tasks) assertEquals(200, task.get(30, TimeUnit.SECONDS));
+        assertEquals(StatusObra.ATIVA, estrutura.obra(nova.getId()).getStatus());
+        assertEquals(1, eventos.findAll().stream().filter(e ->
+            e.getEvento().equals("OBRA_STATUS_ALTERADO")
+                && e.getReferencia().equals(nova.getId().toString())).count());
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
   void identity(Perfil profile) {
     if (actor.getPerfil() != profile)
       actor =

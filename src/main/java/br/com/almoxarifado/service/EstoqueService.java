@@ -16,6 +16,49 @@ import java.util.Optional;
 @org.springframework.transaction.annotation.Transactional
 public class EstoqueService {
 
+    /** EPI uses the same physical stock and movement infrastructure, never a parallel balance. */
+    @PreAuthorize("@autorizacao.permite('EPI_ENTREGA_GERENCIAR')")
+    public Movimentacao movimentarEpi(Integer produtoId, Integer almoxarifadoId, double quantidade,
+            Integer funcionarioId, Integer responsavelId, TipoMovimentacao tipo,
+            br.com.almoxarifado.obras.ContextoOperacional contexto) {
+        if (tipo != TipoMovimentacao.SAIDA && tipo != TipoMovimentacao.ENTRADA) {
+            throw new IllegalArgumentException("Movimento EPI invalido");
+        }
+        Produto produto = produtoRepository.buscarParaAtualizacao(produtoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto nao encontrado"));
+        ValidacaoQuantidade.validar(produto, quantidade);
+        Estoque estoque = repository.buscarParaAtualizacao(produtoId, almoxarifadoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque nao encontrado"));
+        double anterior = estoque.getQuantidade();
+        double posterior = tipo == TipoMovimentacao.SAIDA ? anterior - quantidade : anterior + quantidade;
+        // Zero only negligible binary residue, one millionth of the minimum EPI quantity.
+        if (Math.abs(posterior) <= 1e-12) posterior = 0;
+        if (!Double.isFinite(anterior) || anterior < 0 || !Double.isFinite(posterior)
+                || posterior < 0 || posterior == anterior) {
+            throw new ConflitoException("Saldo insuficiente ou quantidade fora da precisao do estoque");
+        }
+        // Permit ordinary binary roundoff, but never a discrepancy of half the minimum EPI unit.
+        var delta = java.math.BigDecimal.valueOf(posterior)
+                .subtract(java.math.BigDecimal.valueOf(anterior)).abs();
+        if (delta.subtract(java.math.BigDecimal.valueOf(quantidade)).abs()
+                .compareTo(new java.math.BigDecimal("0.0000005")) >= 0) {
+            throw new ConflitoException("Variacao fora da precisao de seis decimais do EPI");
+        }
+        Funcionario funcionario = funcionarioRepository.findById(funcionarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario nao encontrado"));
+        Funcionario responsavel = funcionarioRepository.findById(responsavelId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Responsavel nao encontrado"));
+        Movimentacao movimento = new Movimentacao();
+        movimento.setProduto(produto); movimento.setAlmoxarifado(estoque.getAlmoxarifado());
+        movimento.setSolicitante(funcionario); movimento.setResponsavel(responsavel);
+        movimento.setTipo(tipo); movimento.setQuantidade(quantidade);
+        movimento.setSaldoAnterior(anterior); movimento.setSaldoPosterior(posterior);
+        movimento.setDataHora(LocalDateTime.now()); movimento.setContexto(contexto);
+        estoque.setQuantidade(posterior);
+        repository.save(estoque);
+        return movimentacaoRepository.saveAndFlush(movimento);
+    }
+
     private final EstoqueRepository repository;
     private final ProdutoRepository produtoRepository;
     private final AlmoxarifadoRepository almoxarifadoRepository;

@@ -63,3 +63,9 @@ npm audit não encontrou vulnerabilidades nesta rodada. Maven foi revisado por d
 Assinatura idempotente diferencia nulo e texto literal; leitura continua permissionada por módulo. Regressões cobrem os 18 handlers nos quatro perfis, as oito escritas com CSRF/mass assignment e reversão de estado/evento/chave quando a auditoria falha. Nenhuma nova dependência, authority ou rota pública foi criada na auditoria. [Relatório](bloco6-auditoria-pre-commit.md).
 
 Antes de produção permanecem: rotação comprovada de credenciais históricas comprometidas (não realizada nesta rodada), configuração externa, HTTPS/proxy, homologação de dialect/locks/constraints e migração autorizada, backup e restauração testados, observabilidade/retenção de logs, revisão operacional de sessões/rate limiting e SCA do backend. Zero no npm audit não substitui esses gates. QR autenticado, upload seguro de evidências e logo oficial permanecem pendentes funcionais, sem atalhos públicos ou assets inventados.
+
+## Bloco 7 - limites mantidos
+
+O diagnóstico do incidente B5 acrescentou ao log genérico somente os nomes das classes da exceção e da causa imediata. A resposta HTTP permanece genérica, sem stack trace; log não inclui mensagem da exceção, URI ou corpo. Esses nomes ajudam investigação, mas não identificaram a causa do 500 anterior. Evidências e risco residual na [auditoria B7](bloco7-auditoria-pre-commit.md).
+
+EPI usa sessao/CSRF/authorities e auditoria existentes. Propostas SQL nao executadas, testes somente H2 isolado. QR, anexos, logo oficial, valorizacao, homologacao real, rotacao externa das credenciais historicas, HTTPS/proxy, migracoes controladas, backup/restore testado, observabilidade/monitoramento e sessao/rate limiting de producao continuam pendentes. Nenhuma preparacao arquitetural substitui security gate antes de producao.

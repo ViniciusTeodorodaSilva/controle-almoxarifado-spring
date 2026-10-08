@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Can } from '../auth/AuthContext'
 import { registryPermission } from '../auth/permissions'
 import { useCallback, useState } from 'react'
@@ -19,6 +20,7 @@ export default function Registries({ name }) {
   const [editing,setEditing] = useState(null), [notice,setNotice] = useState('')
   const columns = config.fields.map(([key,label,type])=>({key,label,render:row=>type==='checkbox' ? (row[key]?'Sim':'Não') : row[key] || '—'}))
   if(config.active) columns.push({key:'ativo',label:'Situação',render:row=><Badge value={row.ativo}/>})
+  if(name==='funcionarios') columns.push({key:'epi',label:'EPIs',render:row=><Can permission="EPI_ENTREGA_LER"><Link to={'/epi-funcionarios/'+row.id}>Ficha de EPI</Link></Can>})
   columns.push({key:'action',label:'Ações',render:row=><Can permission={registryPermission[name]}><button className="btn text" onClick={()=>{setNotice('');setEditing({...row})}}><Pencil size={15}/>Editar</button></Can>})
   return <><PageHeader eyebrow={config.active?'CATÁLOGO':'ESTRUTURA'} title={config.title} description={config.description}><Can permission={registryPermission[name]}><button className="btn" onClick={()=>{setNotice('');setEditing({ativo:true,permiteFracionamento:false})}}><Plus size={17}/>Novo cadastro</button></Can></PageHeader><Notice>{notice}</Notice>
     <Card><div className="filters"><div className="search-input"><Search size={17}/><input aria-label="Buscar registros" placeholder="Buscar por nome…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{config.active && <select aria-label="Filtrar situação" value={active} onChange={e=>setActive(e.target.value)}><option value="">Todas as situações</option><option value="true">Ativos</option><option value="false">Inativos</option></select>}</div>

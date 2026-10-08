@@ -26,10 +26,23 @@ export function Field({ label, children, hint, error }) {
   const id = useId()
   return <div className="field"><label htmlFor={id}>{label}</label>{cloneElement(children, { id, 'aria-describedby': error ? id + '-error' : hint ? id + '-hint' : undefined, 'aria-invalid': error ? true : undefined })}{hint && <small id={id + '-hint'}>{hint}</small>}{error && <small className="field-error" id={id + '-error'} role="alert">{error}</small>}</div>
 }
-export function Modal({ title, children, onClose, busy = false }) {
+export function Modal({ title, children, onClose, busy = false, trapFocus = false }) {
   const dialog = useRef(null)
-  useEffect(() => { const element = dialog.current; element.showModal(); return () => element.close() }, [])
-  return <dialog ref={dialog} className="dialog" aria-labelledby="dialog-title" onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
+  useEffect(() => {
+    const element = dialog.current, opener = document.activeElement
+    element.showModal()
+    return () => { element.close(); if (trapFocus && opener?.isConnected) opener.focus() }
+  }, [trapFocus])
+  function keepFocus(event) {
+    if (!trapFocus || event.key !== 'Tab') return
+    const controls = [...dialog.current.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')]
+      .filter(element => !element.matches(':disabled') && element.tabIndex >= 0 && element.getClientRects().length)
+    const first = controls[0], last = controls.at(-1)
+    if (!first) { event.preventDefault(); return }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+  return <dialog ref={dialog} className="dialog" aria-labelledby="dialog-title" onKeyDown={keepFocus} onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
     <div className="dialog-header"><h2 id="dialog-title">{title}</h2><button type="button" className="icon-button" aria-label="Fechar" onClick={onClose} disabled={busy}><X size={20}/></button></div>{children}
   </dialog>
 }

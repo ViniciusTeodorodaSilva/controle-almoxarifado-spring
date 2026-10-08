@@ -46,3 +46,7 @@ Estrutura/contexto bloqueiam Obra → CC → OS; não bloqueiam estoque/pedido/d
 ## Bloco 6 — regras confirmadas em auditoria
 
 Consultar [ativos](docs/ferramentas-equipamentos.md) e [auditoria](docs/bloco6-auditoria-pre-commit.md). Empréstimo para Obra confirmado efetiva essa localização e limpa almoxarifado atual; devolução padrão restaura origem congelada. Transferência mantém origem até chegada. Idempotência deve distinguir nulo de texto literal. Inspeção é concluída sem evento de fechamento; baixado não gera agenda pendente. Preservar locks contexto → ativo, snapshots e atomicidade de estado/evento/chave/auditoria. Preparação de QR/anexos/manutenção não significa requisito concluído.
+
+## EPI operacional - Bloco 7
+
+Consultar [EPI/SST](docs/epis-seguranca-trabalho.md). Configuracao 1:1 Produto, saldo somente Estoque. Historico imutavel por evento/item com snapshots de CA, identidade, unidade e contexto. Locks entrega: contexto -> origens por ID -> produtos por ID -> estoque ordenado; fechamento nao bloqueia estrutura. Substituicao exige condicao/destino antigos explicitos; devolucao so credita ESTOQUE com NOVO e politicas/identidade/validade compativeis. Chave persistida e auditoria atomica; jamais inferir aptidao legal ou reutilizacao automatica. Scripts manuais nao executados; sem QR/anexos/SST completo, banco real, producao ou commit/push nesta rodada.

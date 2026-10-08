@@ -368,3 +368,30 @@ Resumo: `emprestimosAbertos,emprestimosVencidos,indisponiveis,inspecoesPendentes
 Sem novos handlers nesta auditoria. Nas listagens de registros de ativos, `aberto` e `vencido` são campos de resposta calculados em lote. `aberto`/`vencido` são filtros cumulativos; inspeções são concluídas sem evento de fechamento. `aberto=false&vencido=true` não transforma um empréstimo fechado em vencido. Inspeção pendente exclui BAIXADO em todos os canais. A pesquisa textual de ativos interpreta `%`, `_` e barra invertida como caracteres literais.
 
 Empréstimo com Obra confirmada efetiva a localização nesse contexto e limpa o almoxarifado atual; a origem congelada permanece no registro e é restaurada por devolução sem outro destino. Transferência efetiva localização somente na chegada. Observações/descrições longas admitem LF/CR/TAB, sem admitir outros controles nem ampliar campos curtos. Idempotência diferencia nulo de texto literal `<null>`. Campos internos e snapshots continuam somente de resposta. [Evidências da auditoria](bloco6-auditoria-pre-commit.md).
+
+## Bloco 7: EPI operacional (12 endpoints permissionados; 5 mutadores)
+
+| Metodo | Rota | Authority |
+|---|---|---|
+| GET | /epis | EPI_LER |
+| GET | /epis/{id} | EPI_LER |
+| POST | /epis | EPI_GERENCIAR |
+| PUT | /epis/{id} | EPI_GERENCIAR |
+| GET | /epi-entregas | EPI_ENTREGA_LER |
+| GET | /epi-entregas/{id} | EPI_ENTREGA_LER |
+| GET | /epi-entregas/posse | EPI_ENTREGA_LER |
+| GET | /epi-entregas/resumo | EPI_ENTREGA_LER |
+| GET | /epi-funcionarios/{id} | EPI_ENTREGA_LER |
+| POST | /epi-entregas | EPI_ENTREGA_GERENCIAR |
+| POST | /epi-devolucoes | EPI_ENTREGA_GERENCIAR |
+| POST | /epi-descartes | EPI_ENTREGA_GERENCIAR |
+
+Todos exigem sessao; os cinco mutadores exigem CSRF. Os tres comandos de entrega/fechamento exigem Idempotency-Key persistida. Inventario atual: 132 handlers, 57 escritas; teste reflexivo confirma os totais.
+
+Configuracao: produtoId, ca, fabricante?, modelo?, tamanho?, validadeCa?, diasSubstituicao?, ativo, exigeDevolucao, permiteRetorno, observacao?. ID da rota e Produto sao imutaveis. Entrega: funcionarioId, responsavelId, almoxarifadoId, motivo (INICIAL/REPOSICAO/SUBSTITUICAO), recebimentoConfirmado=true, contexto? {obraId, ordemServicoId, centroCustoId}, observacao?, itens[produtoId, quantidade, lote?, fabricacao?, validadeFisica?]. Na substituicao cada linha exige origemItemId, quantidadeSubstituida, motivoSubstituicao, condicaoAnterior e destinoAnterior; retorno ESTOQUE nao e permitido nesse comando.
+
+Fechamento: responsavelId, almoxarifadoId, motivo, itens[origemItemId, quantidade, condicao, destino]. Condicoes NOVO/USADO/DANIFICADO/PERDIDO; destinos ESTOQUE/SEGREGADO/DESCARTE/PERDA com regras de coerencia. Quantidades positivas ate seis decimais, representadas como strings nas respostas. DTOs rejeitam propriedades desconhecidas.
+
+Listas usam pagina=0, tamanho=20 (max100), content/totalElements/totalPages/first/last. Configs: termo, ca, ativo, almoxarifadoId opcional para saldoDisponivel. Entregas: funcionarioId, produtoId, obraId, ordemServicoId, centroCustoId, almoxarifadoId, ca historico, tipo, de, ate. Posse: funcionarioId, alerta=VENCIDO/A_VENCER. Ficha: funcionario atual, posse e historico paginados; detalhes/documentos usam snapshots. Resumo conta linhas em posse/vencidas/a vencer, sem soma de unidades distintas.
+
+400 para DTO/quantidade/datas/confirmacao invalidos; 401 sem sessao; 403 sem authority/CSRF; 404 para referencias inexistentes; 409 para conflito de saldo, identidade, contexto, posse ou chave. Sem DELETE e sem rota publica. [Regras completas](epis-seguranca-trabalho.md).

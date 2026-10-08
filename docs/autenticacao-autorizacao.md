@@ -271,3 +271,7 @@ ADMIN/GESTOR gerenciam as quatro áreas. ALMOXARIFE lê todas e gerencia emprés
 ## Auditoria adversarial de ativos — Bloco 6
 
 Os 18 handlers foram exercitados com payloads válidos nos quatro perfis; as oito escritas também foram cobertas contra CSRF ausente e campos internos forjados. HTTP e service mantêm a matriz declarada. Leitura permissionada é por módulo, sem segregação por Obra; não declarar isolamento que não existe. IDs inexistentes e tipos incorretos não concedem acesso. Rollback de auditoria foi ampliado para transferência, chegada, devolução, inspeção e baixa. [Relatório e limites](bloco6-auditoria-pre-commit.md).
+
+## Bloco 7 - EPI
+
+Todos os endpoints EPI sao permissionados conforme [API](api.md). EPI_LER/EPI_ENTREGA_LER: quatro perfis. EPI_GERENCIAR: ADMIN/GESTOR. EPI_ENTREGA_GERENCIAR: ADMIN/GESTOR/ALMOXARIFE. Sessao/CSRF e gates de service preservados. Auditoria atomica de configuracao, entrega, substituicao, devolucao e descarte; ator autenticado separado de funcionario/responsavel operacional. DTO estrito, chave persistida nas operacoes fisicas. Leitura permanece global por modulo; confidencialidade SST individual e isolamento por obra nao implementados. Inventario atual 132 handlers/57 escritas, sem novos endpoints publicos.

@@ -49,7 +49,9 @@ public class RegraNegocioExceptionHandler extends ResponseEntityExceptionHandler
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> tratarInesperado(Exception exception, HttpServletRequest request) {
-        LOG.error("Erro interno ao processar requisicao; consulte o requestId para correlacao");
+        LOG.error("Erro interno ao processar requisicao; consulte o requestId para correlacao; tipo={}, causa={}",
+                exception.getClass().getName(),
+                exception.getCause() == null ? null : exception.getCause().getClass().getName());
         return resposta(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno ao processar a requisição", request.getRequestURI());
     }
 

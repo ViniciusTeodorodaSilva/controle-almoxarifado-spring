@@ -72,3 +72,9 @@ O registro da fonte oficial foi documental. A implementação incremental do Blo
 
 - [Bloco 5 — auditoria final pré-commit](bloco5-auditoria-pre-commit.md): revisão adversarial, correções, concorrência, segurança e evidências; sem commit/push.
 - [Bloco 6 — auditoria adversarial pré-commit](bloco6-auditoria-pre-commit.md): correções, regressões, revisão visual e relatório de 88 pontos; sem commit/publicação/banco real.
+
+## Bloco 7 - EPI/SST operacional
+
+[Regras, RFs e limites](epis-seguranca-trabalho.md), [relatorio final](bloco7-relatorio-final.md) e propostas SQL manuais MySQL/PostgreSQL em docs/sql/epis-*. Sem banco real ou publicacao.
+
+[Auditoria adversarial pré-commit do Bloco 7](bloco7-auditoria-pre-commit.md): revisão de código, investigação do HTTP 500 anterior, testes, documentos, revisão visual e decisão sem execução de commit.
