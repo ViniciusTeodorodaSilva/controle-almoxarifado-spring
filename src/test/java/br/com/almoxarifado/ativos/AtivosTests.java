@@ -32,6 +32,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:bes-ativos;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=15000","spring.jpa.properties.hibernate.generate_statistics=true","logging.level.root=WARN","debug=false"})
 @ActiveProfiles("test") @AutoConfigureMockMvc
 class AtivosTests {
+ @Autowired javax.sql.DataSource lifecycleDataSource;
+ @Test void regressaoP0DevolucaoAposRenovarConexoesH2() {
+  var input=loan();input.contexto=context();
+  int origem=(Integer)service.emprestar(input,key()).get("id");
+  var before=service.buscar(ativoId);
+  assertEquals(StatusAtivo.EMPRESTADO,before.get("status"));
+  assertEquals(CondicaoAtivo.BOM,before.get("condicao"));
+  ((com.zaxxer.hikari.HikariDataSource)lifecycleDataSource).getHikariPoolMXBean().softEvictConnections();
+  String commandKey=key();var result=service.devolver(origem,returned(),commandKey);
+  assertEquals(result.get("id"),service.devolver(origem,returned(),commandKey).get("id"));
+  assertThrows(ConflitoException.class,()->service.devolver(origem,returned(),key()));
+  assertEquals(StatusAtivo.DISPONIVEL,service.buscar(ativoId).get("status"));
+  assertEquals(warehouse,service.buscar(ativoId).get("almoxarifadoId"));
+  assertNull(service.buscar(ativoId).get("pendenciaId"));
+  assertEquals(2,service.historico(ativoId,0,20).getTotalElements());
+ }
  @Autowired AtivosService service;
  @Autowired AtivoRepository ativos;
  @Autowired RegistroAtivoRepository registros;

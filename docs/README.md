@@ -1,5 +1,8 @@
 # Documentação da Plataforma BES
 
+- [Decisões de produto B&S — 09/10/2026](decisoes-produto-bs-20261009.md): complemento canônico de planejamento à v1.4; prontuário único EPI, aceite sujeito a validação SST/jurídica, caixas digitais, redução de papel e comercialização futura. Não implementadas nesta rodada.
+- [Retomada controlada P0/P1 — 09/10/2026](bes-retomada-controlada-20261009.md): estado recuperado, verificações atuais, evidências e limites para auditoria pré-commit.
+
 - [Ferramentas, equipamentos e custódia — Bloco 6](ferramentas-equipamentos.md): domínio, fluxos, segurança, RFs, documentos e limites.
 - [Relatório final — Bloco 6](bloco6-relatorio-final.md): evidências e resposta aos 84 pontos solicitados.
 

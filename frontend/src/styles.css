@@ -153,3 +153,15 @@ body:has(dialog[open]){overflow:hidden}
 .epi-mobile-posse{display:none}.epi-mobile-item{border:1px solid var(--border);border-radius:6px;padding:16px;margin-top:16px}.epi-mobile-item p{font-size:12px;line-height:1.7;margin:8px 0}.epi-mobile-item .epi-inline-actions{margin-top:12px}@media(max-width:600px){.epi-mobile-posse{display:block}.epi-posse-table{display:none}.epi-mobile-item .epi-inline-actions{align-items:stretch}}
 
 .epi-config-list .table-scroll th:nth-child(2),.epi-config-list .table-scroll td:nth-child(2){min-width:120px}.epi-config-list .table-scroll td:nth-child(2)>strong{white-space:nowrap}
+
+/* Premium V02–V05: visible focus, readable names and secondary text. */
+:root { --text-secondary: #536b79; }
+.breadcrumb, .page-footer { color: var(--text-secondary); }
+.supplier-list .table-scroll table { min-width: 1040px !important; }
+.supplier-list th:nth-child(1), .supplier-list td:nth-child(1),
+.supplier-list th:nth-child(2), .supplier-list td:nth-child(2) { min-width: 220px; overflow-wrap: break-word; }
+.supplier-list td:last-child .btn { max-width: 280px; white-space: normal; text-align: left; }
+@media (max-width: 850px) {
+  .sidebar:not(.is-open) { visibility: hidden; }
+  .sidebar .nav-link, .sidebar .icon-button, .menu-toggle { min-height: 44px; }
+}

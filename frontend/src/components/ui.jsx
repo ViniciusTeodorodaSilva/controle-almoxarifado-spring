@@ -26,24 +26,35 @@ export function Field({ label, children, hint, error }) {
   const id = useId()
   return <div className="field"><label htmlFor={id}>{label}</label>{cloneElement(children, { id, 'aria-describedby': error ? id + '-error' : hint ? id + '-hint' : undefined, 'aria-invalid': error ? true : undefined })}{hint && <small id={id + '-hint'}>{hint}</small>}{error && <small className="field-error" id={id + '-error'} role="alert">{error}</small>}</div>
 }
-export function Modal({ title, children, onClose, busy = false, trapFocus = false }) {
+export function Modal({ title, children, onClose, busy = false, trapFocus = true }) {
   const dialog = useRef(null)
+  const titleId = useId()
   useEffect(() => {
     const element = dialog.current, opener = document.activeElement
     element.showModal()
-    return () => { element.close(); if (trapFocus && opener?.isConnected) opener.focus() }
+    return () => {
+      element.close()
+      if (trapFocus) {
+        const target = opener?.isConnected && !opener.matches(':disabled') && !opener.closest('[inert]') && opener.getClientRects().length ? opener : document.getElementById('content')
+        target?.focus()
+      }
+    }
   }, [trapFocus])
+  useEffect(() => {
+    if (trapFocus && (!dialog.current.contains(document.activeElement) || document.activeElement.matches(':disabled'))) dialog.current.focus()
+  }, [busy, trapFocus])
   function keepFocus(event) {
     if (!trapFocus || event.key !== 'Tab') return
-    const controls = [...dialog.current.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')]
+    const controls = [...dialog.current.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
       .filter(element => !element.matches(':disabled') && element.tabIndex >= 0 && element.getClientRects().length)
-    const first = controls[0], last = controls.at(-1)
-    if (!first) { event.preventDefault(); return }
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    event.preventDefault()
+    if (!controls.length) { dialog.current.focus(); return }
+    const index = controls.indexOf(document.activeElement)
+    const next = index < 0 ? (event.shiftKey ? controls.length - 1 : 0) : (index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length
+    controls[next].focus()
   }
-  return <dialog ref={dialog} className="dialog" aria-labelledby="dialog-title" onKeyDown={keepFocus} onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
-    <div className="dialog-header"><h2 id="dialog-title">{title}</h2><button type="button" className="icon-button" aria-label="Fechar" onClick={onClose} disabled={busy}><X size={20}/></button></div>{children}
+  return <dialog ref={dialog} tabIndex={-1} className="dialog" aria-labelledby={titleId} onKeyDown={keepFocus} onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
+    <div className="dialog-header"><h2 id={titleId}>{title}</h2><button type="button" className="icon-button" aria-label="Fechar" onClick={() => { if (!busy) onClose() }} disabled={busy}><X size={20}/></button></div>{children}
   </dialog>
 }
 export const quantity = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 }).format(value ?? 0)

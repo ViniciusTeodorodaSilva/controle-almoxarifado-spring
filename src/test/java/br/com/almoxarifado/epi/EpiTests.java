@@ -34,6 +34,18 @@ import org.springframework.transaction.support.TransactionTemplate;
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:bes-epi;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=15000","spring.jpa.properties.hibernate.generate_statistics=true","logging.level.root=WARN","debug=false"})
 @ActiveProfiles("test") @AutoConfigureMockMvc
 class EpiTests {
+ @Autowired javax.sql.DataSource lifecycleDataSource;
+ @Test void regressaoP0EntregaSemContextoAposRenovarConexoesH2() {
+  var first=entrega();first.contexto=contexto();service.entregar(first,key());
+  assertEquals(8,saldo());
+  ((com.zaxxer.hikari.HikariDataSource)lifecycleDataSource).getHikariPoolMXBean().softEvictConnections();
+  var input=entrega();input.itens=List.of(linha(produto,"1"));
+  String commandKey=key();var result=service.entregar(input,commandKey);
+  assertNull(result.get("contexto"));assertEquals(7,saldo());
+  assertEquals(result.get("id"),service.entregar(input,commandKey).get("id"));assertEquals(7,saldo());
+  input.itens=List.of(linha(produto,"2"));
+  assertThrows(ConflitoException.class,()->service.entregar(input,commandKey));assertEquals(7,saldo());
+ }
  @Autowired EpiService service;
  @Autowired EpiConfiguracaoRepository configs;
  @Autowired RegistroEpiRepository registros;
