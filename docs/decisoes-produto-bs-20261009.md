@@ -1,5 +1,9 @@
 # Decisões de produto B&S — evolução planejada
 
+Em 09/10/2026, estas decisões foram integradas documentalmente à [v1.5 candidata](Documentacao_Mestre_Plataforma_BES_v1_5_Candidata.docx), com rastreabilidade DP na [matriz](matriz-rastreabilidade-bes-v1_5.md). A integração não representa implementação ou aprovação da candidata; a v1.4 continua mestre oficial e intacta. A BES é produto próprio independente; B&S é potencial cliente. Auditoria e promoção da candidata à mestre permanecem pendentes. Este registro conserva sua redação histórica como fonte das decisões de planejamento.
+
+As fontes das instruções estão preservadas em [F01/F02](bes-fontes-decisoes-documentais-v1_5.md). A autorização F02 acrescenta ao planejamento o [eixo RH/DP, folha nativa/externa, benefícios e financeiro](bes-eixo-rh-dp-folha-beneficios-financeiro-v1_5.md), separado dos RF001–RF218 e das sugestões PR. Cálculos legais, aceites, políticas, integrações e execução permanecem sujeitos a validação e autorização específica. Correções documentais não aprovam implementação.
+
 Registro canônico complementar à [Documentação Mestre BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx), em 09/10/2026. Preserva RF001–RF218 e as decisões compatíveis anteriores; não altera a cobertura implementada nem autoriza implementação, Bloco 8, publicação ou lançamento. Correções em andamento são registradas no [relatório de retomada](bes-retomada-controlada-20261009.md).
 
 ## Prontuário digital único de EPI

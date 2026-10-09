@@ -8,6 +8,19 @@
 
 ## Fonte mestre oficial atual
 
+A [v1.5 candidata](Documentacao_Mestre_Plataforma_BES_v1_5_Candidata.docx) foi preparada em 09/10/2026 para auditoria pré-commit. **Não substitui a v1.4 nem autoriza implementação ou produção.** Consolida a BES como produto independente; B&S Engenharia é potencial cliente. Sua seção histórica conserva integralmente a v1.4, inclusive os 218 RFs e 12 RNFs originais.
+
+- [Relatório da consolidação e integridade](bes-consolidacao-documental-v1_5.md): estado observado, contagens, evidências anteriores, arquivos e limites de validação.
+- [Matriz individual de rastreabilidade](matriz-rastreabilidade-bes-v1_5.md): redação original, estado, fontes, arquivos, testes associados, dependências, prioridade, risco e aceite de cada RF.
+- [Inventário técnico estruturado](inventario-tecnico-bes-v1_5.json): requisitos, RNFs, decisões DP, propostas PR, fontes e 132 rotas explícitas.
+- [Visão integral e roadmap comercial](roadmap-integral-bes-v1_5.md): 41 grupos de capacidades, fases F0–F10 e E0–E5, qualidade, implantação, comercialização e riscos. Todas as ampliações são planejamento sujeito a autorização.
+- [Eixo RH/DP, folha A/B, benefícios e financeiro](bes-eixo-rh-dp-folha-beneficios-financeiro-v1_5.md): 56 capacidades documentais, sem novos números RF ou funcionalidades implementadas; 20 planejadas e 36 dependentes de validação.
+- [Fontes duráveis das decisões e autorizações](bes-fontes-decisoes-documentais-v1_5.md): transcrições F01/F02 e referência à auditoria anterior, com hashes e distinção entre planejamento e execução.
+- [Correções após auditoria documental](bes-correcoes-documentais-v1_5.md): tratamento de D01–D08, preservação da v1.4, revisão visual alternativa e verificações correntes.
+- [Auditoria documental anterior](bes-auditoria-documental-v1_5.md): parecer histórico da candidata antes das correções; preservado sem substituir a nova auditoria ainda pendente.
+
+A ferramenta empacotada de renderização continua indisponível por ausência de `pdf2image`, mas a conversão alternativa pelo Word instalado funcionou em modo somente leitura. A revisão de paginação/layout e seus limites estão no relatório de correções. Aprovar a candidata exige nova auditoria independente antes de qualquer troca da fonte mestre oficial; não há declaração de homologação ou produção.
+
 Desde 04/10/2026, a [Documentação Mestre Plataforma BES v1.4](Documentacao_Mestre_Plataforma_BES_v1_4.docx) é a **referência funcional oficial principal**, abrangendo **RF001–RF218**. Ela substitui a v1.3 como fonte mestre sem descartar requisitos, decisões ou roadmap anteriores compatíveis.
 
 O documento recebido foi comparado byte a byte com o arquivo canônico, confirmando conteúdo idêntico. A cópia redundante foi removida; somente `Documentacao_Mestre_Plataforma_BES_v1_4.docx` permanece como fonte oficial, sem edição do conteúdo Word. Usar esse caminho para referências futuras.

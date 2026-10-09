@@ -1,5 +1,9 @@
 # Plataforma BES — referência oficial para desenvolvimento
 
+## Consolidação documental v1.5 candidata — 09/10/2026
+
+A [v1.5 candidata](docs/Documentacao_Mestre_Plataforma_BES_v1_5_Candidata.docx), a [matriz integral](docs/matriz-rastreabilidade-bes-v1_5.md) e o [roadmap](docs/roadmap-integral-bes-v1_5.md) são planejamento sujeito à auditoria. A v1.4 permanece a única mestre oficial até aprovação expressa; a candidata não autoriza novos blocos ou produção. Consultar o [relatório de integridade e limites](docs/bes-consolidacao-documental-v1_5.md). BES é produto independente; B&S é potencial cliente, sem propriedade presumida. Registrar oportunidades como propostas sujeitas à aprovação, sem expansão silenciosa de escopo.
+
 ## Ferramentas e equipamentos — Bloco 6
 
 Consultar [ativos e custódia](docs/ferramentas-equipamentos.md). Ativo individual não altera saldo de Produto. Uma pendência por ativo; devolução/chegada são eventos novos que fecham origem única. Contexto usa snapshots do Bloco 5. Locks: Obra → CC → OS quando necessários → ativo; nunca adquirir estrutura depois do ativo nem misturar locks de estoque/pedido/demanda. Condição, situação administrativa e reprovação são separadas. Dano não atribui culpa automática. Operações críticas exigem authority no HTTP/service, CSRF, ator autenticado, auditoria atômica e chave de idempotência. Sem DELETE, manutenção/financeiro/QR/anexos completos, scripts reais, produção, commit ou push nesta rodada.
