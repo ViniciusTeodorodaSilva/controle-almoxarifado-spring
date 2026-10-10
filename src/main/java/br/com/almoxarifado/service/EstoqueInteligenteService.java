@@ -46,7 +46,9 @@ public class EstoqueInteligenteService {
     }
     private AlertaEstoqueResponse resumo(Estoque e) {
         boolean baixo = e.getEstoqueMinimo() != null && e.getQuantidade() <= e.getEstoqueMinimo();
-        Double sugestao = baixo && e.getEstoqueMaximo() != null ? Math.max(0, e.getEstoqueMaximo() - e.getQuantidade()) : null;
+        Double sugestao = baixo && e.getEstoqueMaximo() != null
+                ? QuantidadesOperacionais.representar(java.math.BigDecimal.valueOf(e.getEstoqueMaximo())
+                    .subtract(java.math.BigDecimal.valueOf(e.getQuantidade())).max(java.math.BigDecimal.ZERO)) : null;
         var p = e.getProduto(); var a = e.getAlmoxarifado();
         String unidade = p.getUnidadeMedidaConfigurada() == null ? p.getUnidadeMedida() : p.getUnidadeMedidaConfigurada().getSigla();
         return new AlertaEstoqueResponse(e.getId(), p.getId(), p.getCodigo(), p.getNome(), a.getId(), a.getNome(), unidade,

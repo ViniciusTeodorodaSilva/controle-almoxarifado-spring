@@ -4,6 +4,10 @@ import br.com.almoxarifado.model.Movimentacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Integer> {
+    java.util.Optional<Movimentacao> findByChaveIdempotencia(String chave);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select m from Movimentacao m where m.chaveIdempotencia = :chave")
+    java.util.Optional<Movimentacao> buscarReplayAtual(@org.springframework.data.repository.query.Param("chave") String chave);
     java.util.Optional<Movimentacao> findFirstByProdutoIdAndAlmoxarifadoIdOrderByIdDesc(Integer produtoId, Integer almoxarifadoId);
 
     java.util.List<Movimentacao> findByProdutoId(Integer produtoId);

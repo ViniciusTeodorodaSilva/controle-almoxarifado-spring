@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useResource } from '../hooks/useResource'
 import ProductPicker from '../components/ProductPicker'
 import { Modal, Field, Notice, ResourceView, quantity } from '../components/ui'
 import { quantityError, unitLabel, registerMovement } from '../utils/operations'
 export default function StockMovementForm({ type, onClose, onSaved, onChanged }) {
+  const attempt = useRef(null)
   const refs = useResource(useCallback(signal => Promise.all(['funcionarios', 'almoxarifados'].map(name => api.list(name, null, signal))), []))
   const [product, setProduct] = useState(null)
   const [form, setForm] = useState({ almoxarifadoId: '', quantidade: '', solicitanteId: '', responsavelId: '' })
@@ -37,20 +38,27 @@ export default function StockMovementForm({ type, onClose, onSaved, onChanged })
     setError(''); setConfirm(true)
   }
   async function execute() {
+    if (busy) return
     setBusy(true); setError('')
     try {
-      await registerMovement(api, type, { ...form, produtoId: product.id, quantidade: Number(form.quantidade), almoxarifadoId: Number(form.almoxarifadoId), solicitanteId: Number(form.solicitanteId), responsavelId: Number(form.responsavelId) }, allowCreate)
+      if (attempt.current) await api.moveStock(type, attempt.current.body, attempt.current.key)
+      else {
+        attempt.current = { key: crypto.randomUUID(), body: { ...form, produtoId: product.id, quantidade: Number(form.quantidade), almoxarifadoId: Number(form.almoxarifadoId), solicitanteId: Number(form.solicitanteId), responsavelId: Number(form.responsavelId) } }
+        await registerMovement(api, type, attempt.current.body, allowCreate, attempt.current.key)
+      }
       onSaved(type === 'entrada' ? 'Entrada registrada com sucesso.' : 'Saída registrada com sucesso.')
     } catch (error) {
       setError(error.message); setConfirm(false); onChanged()
-      if (!error.status || error.status >= 500) setUncertain(true)
-      else setRefresh(value => value + 1)
+      // A failed lookup cannot prove whether the original uncertain write committed.
+      if (uncertain || !error.status || error.status >= 500) setUncertain(true)
+      else { attempt.current = null; setUncertain(false); setRefresh(value => value + 1) }
     } finally { setBusy(false) }
   }
   const unavailable = !product || !form.almoxarifadoId || balance.loading || !!balance.error || (balance.missing && (type === 'saida' || !allowCreate))
   return <Modal title={type === 'entrada' ? 'Registrar entrada' : 'Registrar saída'} onClose={onClose} busy={busy}><form onSubmit={prepare}>
     <Notice error>{error}</Notice>
-    {uncertain && <Notice error>Não foi possível confirmar o resultado. A operação pode ter sido recebida. Confira o saldo e o histórico antes de registrar outra movimentação; ela não será repetida aqui.</Notice>}
+    {uncertain && <Notice error>Não foi possível confirmar o resultado. A operação pode ter sido recebida. Confira o histórico ou consulte novamente o resultado desta tentativa antes de iniciar outra movimentação.</Notice>}
+    {uncertain && <button type="button" className="btn secondary" disabled={busy} onClick={execute}>Consultar resultado da tentativa</button>}
     <ResourceView resource={refs}>{([people, warehouses]) => <>
       <fieldset className="form-section" disabled={busy || confirm || uncertain}><legend>Material e localização</legend>
         <ProductPicker value={product} onChange={value => { setProduct(value); setConfirm(false); setInvalid('') }}/>

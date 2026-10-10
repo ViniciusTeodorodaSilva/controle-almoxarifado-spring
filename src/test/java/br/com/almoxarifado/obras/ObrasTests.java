@@ -62,6 +62,7 @@ class ObrasTests {
   @Autowired TransactionTemplate tx;
   @Autowired MockMvc mvc;
   @Autowired jakarta.persistence.EntityManager em;
+  @Autowired javax.sql.DataSource dataSource;
   @MockitoSpyBean AuditoriaService audit;
   Usuario actor;
   Produto produto;
@@ -133,6 +134,20 @@ class ObrasTests {
       }
     } finally {
       pool.shutdownNow();
+    }
+  }
+  @Test
+  void investigacaoB5RenovacaoDeConexoesMantemStatusEDetalhesEResumosHttp() throws Exception {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    var pool = dataSource.unwrap(com.zaxxer.hikari.HikariDataSource.class);
+    for (int tentativa = 0; tentativa < 5; tentativa++) {
+      pool.getHikariPoolMXBean().softEvictConnections();
+      mvc.perform(put("/obras/{id}/status", obra.getId()).with(csrf()).with(authentication(authentication))
+          .contentType(MediaType.APPLICATION_JSON).content(tentativa % 2 == 0 ? "{\"status\":\"ATIVA\"}" : "{\"status\":\"SUSPENSA\"}")).andExpect(status().isOk());
+      for (String path : List.of("/obras/" + obra.getId(), "/centros-custo/" + centro.getId(), "/ordens-servico/" + os.getId())) {
+        mvc.perform(get(path).with(authentication(authentication))).andExpect(status().isOk());
+        mvc.perform(get(path + "/resumo").with(authentication(authentication))).andExpect(status().isOk());
+      }
     }
   }
 

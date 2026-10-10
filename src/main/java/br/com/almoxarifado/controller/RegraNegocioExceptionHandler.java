@@ -36,7 +36,10 @@ public class RegraNegocioExceptionHandler extends ResponseEntityExceptionHandler
         return resposta(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler({DataIntegrityViolationException.class, PessimisticLockingFailureException.class})
+    @ExceptionHandler({DataIntegrityViolationException.class, PessimisticLockingFailureException.class,
+            org.springframework.dao.OptimisticLockingFailureException.class,
+            jakarta.persistence.LockTimeoutException.class, jakarta.persistence.PessimisticLockException.class,
+            jakarta.persistence.OptimisticLockException.class})
     public ResponseEntity<Object> tratarConflitoPersistencia(Exception exception, HttpServletRequest request) {
         return resposta(HttpStatus.CONFLICT, "Conflito de integridade ou operação concorrente", request.getRequestURI());
     }
@@ -49,7 +52,8 @@ public class RegraNegocioExceptionHandler extends ResponseEntityExceptionHandler
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> tratarInesperado(Exception exception, HttpServletRequest request) {
-        LOG.error("Erro interno ao processar requisicao; consulte o requestId para correlacao; tipo={}, causa={}",
+        LOG.error("Erro interno ao processar requisicao; requestId={}, tipo={}, causa={}",
+                request.getAttribute("bes.requestId"),
                 exception.getClass().getName(),
                 exception.getCause() == null ? null : exception.getCause().getClass().getName());
         return resposta(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno ao processar a requisição", request.getRequestURI());

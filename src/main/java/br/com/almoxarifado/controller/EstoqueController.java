@@ -36,32 +36,34 @@ public class EstoqueController {
     public Estoque entradaEstoque(
             @RequestParam Integer produtoId,
             @RequestParam Integer almoxarifadoId,
-            @RequestParam double quantidade,
+            @RequestParam java.math.BigDecimal quantidade,
             @RequestParam Integer solicitanteId,
-            @RequestParam Integer responsavelId) {
+            @RequestParam Integer responsavelId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String chave) {
 
         return service.entradaEstoque(
                 produtoId,
                 almoxarifadoId,
                 quantidade,
                 solicitanteId,
-                responsavelId);
+                responsavelId, chave);
     }
 
     @PutMapping("/saida")
     public Estoque saidaEstoque(
             @RequestParam Integer produtoId,
             @RequestParam Integer almoxarifadoId,
-            @RequestParam double quantidade,
+            @RequestParam java.math.BigDecimal quantidade,
             @RequestParam Integer solicitanteId,
-            @RequestParam Integer responsavelId) {
+            @RequestParam Integer responsavelId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String chave) {
 
         return service.saidaEstoque(
                 produtoId,
                 almoxarifadoId,
                 quantidade,
                 solicitanteId,
-                responsavelId
+                responsavelId, chave
         );
     }
     @GetMapping("/produto/{produtoId}")

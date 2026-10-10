@@ -32,6 +32,9 @@ class EstoqueInteligenteTransferenciaTests {
     @Autowired UnidadeMedidaRepository unidades;
     @Autowired TransferenciaEstoqueRepository transferencias;
     @Autowired ItemTransferenciaRepository itens;
+    @Autowired br.com.almoxarifado.security.AuditoriaRepository auditorias;
+    @MockitoSpyBean br.com.almoxarifado.security.AuditoriaService audit;
+    @Autowired org.springframework.transaction.support.TransactionTemplate tx;
     @MockitoSpyBean MovimentacaoRepository movimentos;
     @Autowired MockMvc mvc;
     Produto produto; Almoxarifado origem, destino; Funcionario responsavel; Estoque saldoOrigem, saldoDestino;
@@ -44,6 +47,115 @@ class EstoqueInteligenteTransferenciaTests {
         saldoOrigem = estoque(produto, origem, 10); saldoDestino = estoque(produto, destino, 2);
     }
     @Test void minimoValidoNaoMudaSaldoNemHistorico() { var resultado = configurar(3.0, null); assertEquals(3, resultado.estoqueMinimo()); assertEquals(10, saldo(produto, origem)); assertEquals(0, movimentos.count()); }
+    @Test void entradaFracionariaNaoAcumulaResiduoBinario() {
+        fracionario(0.1);
+        estoqueService.entradaEstoque(produto.getId(), origem.getId(), 0.2, responsavel.getId(), responsavel.getId());
+        assertEquals(0.3, saldo(produto, origem));
+        assertEquals(0.3, movimentos.findAll().get(0).getSaldoPosterior());
+    }
+    @Test void entradaHttpNaoDescartaDecimaisAntesDeValidar() throws Exception {
+        fracionario(0);
+        mvc.perform(put("/estoques/entrada").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                .param("produtoId",produto.getId().toString()).param("almoxarifadoId",origem.getId().toString())
+                .param("quantidade","0.10000000000000001").param("solicitanteId",responsavel.getId().toString()).param("responsavelId",responsavel.getId().toString()))
+                .andExpect(status().isBadRequest());
+        assertEquals(0,saldo(produto,origem)); assertEquals(0,movimentos.count());
+    }
+    @Test void transferenciaHttpNaoDescartaDecimaisAntesDeValidar() throws Exception {
+        fracionario(10);
+        String json="{\"origemId\":"+origem.getId()+",\"destinoId\":"+destino.getId()+",\"responsavelId\":"+responsavel.getId()+",\"itens\":[{\"produtoId\":"+produto.getId()+",\"quantidade\":0.10000000000000001}]}";
+        mvc.perform(post("/transferencias").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(json)).andExpect(status().isBadRequest());
+        assertIntacto();
+    }
+    @Test void quantidadeLegadaNaoEForcadaASeisCasas() {
+        fracionario(1.12345678);
+        estoqueService.entradaEstoque(produto.getId(),origem.getId(),0.00000001,responsavel.getId(),responsavel.getId());
+        assertEquals(1.12345679,saldo(produto,origem));
+    }
+    @Test void sugestaoDeReposicaoUsaSubtracaoDecimalExata() {
+        fracionario(0.1); var resultado=configurar(0.2,0.3);
+        assertEquals(0.2,resultado.quantidadeSugerida()); assertEquals(0.1,saldo(produto,origem));
+    }
+    @Test void replayManualConservaRespostaOriginalSemReverterMovimentoPosterior() {
+        long antes = auditorias.count();
+        estoqueService.saidaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-replay-001");
+        estoqueService.entradaEstoque(produto.getId(), origem.getId(), 2, responsavel.getId(), responsavel.getId());
+        var replay = estoqueService.saidaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-replay-001");
+        assertEquals(7, replay.getQuantidade()); assertEquals(9, saldo(produto, origem));
+        assertEquals(2, movimentos.count()); assertEquals(antes + 2, auditorias.count());
+    }
+    @Test void chaveManualNaoPodeSerReutilizadaNaOperacaoInversa() {
+        estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-conflict-001");
+        assertThrows(ConflitoException.class, () -> estoqueService.saidaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-conflict-001"));
+        assertEquals(13, saldo(produto, origem)); assertEquals(1, movimentos.count());
+    }
+    @Test void falhaAuditoriaManualReverteSaldoMovimentoEChave() {
+        long antes = auditorias.count();
+        tx.executeWithoutResult(x -> doThrow(new IllegalStateException("Falha auditoria B8")).when(audit).registrar(
+                org.mockito.ArgumentMatchers.eq("ESTOQUE_ENTRADAESTOQUE"), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()));
+        assertThrows(IllegalStateException.class, () -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-rollback-001"));
+        assertEquals(10, saldo(produto, origem)); assertEquals(0, movimentos.count()); assertEquals(antes, auditorias.count());
+        assertTrue(movimentos.findByChaveIdempotencia("b8-manual-rollback-001").isEmpty());
+    }
+    @Test void falhaAuditoriaTransferenciaReverteDoisSaldosItensMovimentosEChave() {
+        long antes = auditorias.count();
+        tx.executeWithoutResult(x -> doThrow(new IllegalStateException("Falha auditoria B8")).when(audit).registrar(
+                org.mockito.ArgumentMatchers.eq("TRANSFERENCIAESTOQUE_CRIAR"), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()));
+        assertThrows(IllegalStateException.class, () -> service.criar(input(List.of(item(produto, 3))), "b8-transfer-audit-rollback"));
+        assertIntacto(); assertEquals(antes, auditorias.count());
+        assertTrue(transferencias.findByChaveIdempotencia("b8-transfer-audit-rollback").isEmpty());
+    }
+    @Test void chaveMalformadaNaoAlteraEstoque() {
+        assertThrows(IllegalArgumentException.class, () -> service.criar(input(List.of(item(produto, 3))), "curta"));
+        assertThrows(IllegalArgumentException.class, () -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "chave-com-quebra\nlinha"));
+        assertIntacto();
+    }
+    @Test void comandosComChaveContinuamExigindoCsrf() throws Exception {
+        mvc.perform(put("/estoques/entrada").header("Idempotency-Key", "b8-security-csrf-001")
+                .param("produtoId",produto.getId().toString()).param("almoxarifadoId",origem.getId().toString())
+                .param("quantidade","1").param("solicitanteId",responsavel.getId().toString()).param("responsavelId",responsavel.getId().toString()))
+                .andExpect(status().isForbidden()); assertIntacto();
+    }
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(authorities="ESTOQUE_LER")
+    void overloadsComChaveExigemAuthorityNoService() {
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service.criar(input(List.of(item(produto, 3))), "b8-security-service-001"));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-security-service-002"));
+        assertIntacto();
+    }
+    @Test void entradaManualConcorrenteMesmaChaveEfetivaUmaVez() throws Exception {
+        var resultados = concorrentes(() -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-concurrent-001"),
+                () -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 3, responsavel.getId(), responsavel.getId(), "b8-manual-concurrent-001"));
+        assertTrue(resultados.stream().allMatch(Boolean::booleanValue));
+        assertEquals(13, saldo(produto, origem)); assertEquals(1, movimentos.count());
+    }
+    @Test void saidaFracionariaPermiteEsgotarSaldoExato() {
+        fracionario(0.3);
+        estoqueService.saidaEstoque(produto.getId(), origem.getId(), 0.1, responsavel.getId(), responsavel.getId());
+        estoqueService.saidaEstoque(produto.getId(), origem.getId(), 0.2, responsavel.getId(), responsavel.getId());
+        assertEquals(0, saldo(produto, origem));
+        assertEquals(2, movimentos.count());
+    }
+    @Test void entradaQueNaoCabeNaPrecisaoNaoCriaMovimento() {
+        fracionario(1e16);
+        assertThrows(IllegalArgumentException.class, () -> estoqueService.entradaEstoque(produto.getId(), origem.getId(), 1, responsavel.getId(), responsavel.getId()));
+        assertEquals(1e16, saldo(produto, origem));
+        assertEquals(0, movimentos.count());
+    }
+    @Test void transferenciaDecimalConservaQuantidadeNosDoisSaldos() {
+        fracionario(0.3); saldoDestino.setQuantidade(0.1); estoques.save(saldoDestino);
+        transferir(produto, 0.2);
+        assertEquals(0.1, saldo(produto, origem)); assertEquals(0.3, saldo(produto, destino));
+    }
+    private void fracionario(double saldo) {
+        var u = produto.getUnidadeMedidaConfigurada(); u.setPermiteFracionamento(true); unidades.save(u);
+        saldoOrigem.setQuantidade(saldo); estoques.save(saldoOrigem);
+    }
     @Test void maximoValidoSemMinimo() { assertEquals(20, configurar(null, 20.0).estoqueMaximo()); }
     @Test void maximoMenorQueMinimo() { assertThrows(IllegalArgumentException.class, () -> configurar(10.0, 2.0)); }
     @Test void minimoNegativo() { assertThrows(IllegalArgumentException.class, () -> configurar(-1.0, null)); }
@@ -67,6 +179,35 @@ class EstoqueInteligenteTransferenciaTests {
         mvc.perform(get("/estoques/reposicoes")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
     }
     @Test void transferenciaSimples() { var t = transferir(produto, 3); assertEquals("CONCLUIDA", t.status()); assertEquals(7, saldo(produto, origem)); assertEquals(5, saldo(produto, destino)); assertEquals(1, transferencias.count()); }
+    @Test void replayTransferenciaNaoDuplicaSaldoMovimentoOuAuditoria() {
+        var dados = input(List.of(item(produto, 3)));
+        long antes = auditorias.count();
+        var primeiro = service.criar(dados, "b8-transfer-replay-001");
+        var repetido = service.criar(dados, "b8-transfer-replay-001");
+        assertEquals(primeiro.id(), repetido.id()); assertEquals(7, saldo(produto, origem));
+        assertEquals(1, transferencias.count()); assertEquals(2, movimentos.count());
+        assertEquals(antes + 1, auditorias.count());
+    }
+    @Test void chaveTransferenciaRecusaPayloadDiferente() {
+        service.criar(input(List.of(item(produto, 3))), "b8-transfer-conflict-001");
+        assertThrows(ConflitoException.class, () -> service.criar(input(List.of(item(produto, 4))), "b8-transfer-conflict-001"));
+        assertEquals(7, saldo(produto, origem)); assertEquals(2, movimentos.count());
+    }
+    @Test void transferenciaConcorrenteMesmaChaveEfetivaUmaVez() throws Exception {
+        var dados = input(List.of(item(produto, 3)));
+        var resultados = concorrentes(() -> service.criar(dados, "b8-transfer-concurrent-001"),
+                () -> service.criar(dados, "b8-transfer-concurrent-001"));
+        assertTrue(resultados.stream().allMatch(Boolean::booleanValue));
+        assertEquals(7, saldo(produto, origem)); assertEquals(1, transferencias.count()); assertEquals(2, movimentos.count());
+    }
+    @Test void rollbackTransferenciaLiberaChaveParaNovaTentativa() {
+        var dados = input(List.of(item(produto, 3)));
+        doThrow(new IllegalStateException("Falha simulada B8")).when(movimentos).save(argThat(m -> m != null && m.getTransferencia() != null && m.getTipo() == TipoMovimentacao.ENTRADA));
+        assertThrows(IllegalStateException.class, () -> service.criar(dados, "b8-transfer-rollback-001"));
+        assertIntacto(); assertTrue(transferencias.findByChaveIdempotencia("b8-transfer-rollback-001").isEmpty());
+        org.mockito.Mockito.reset(movimentos);
+        service.criar(dados, "b8-transfer-rollback-001"); assertEquals(7, saldo(produto, origem));
+    }
     @Test void transferenciaVariosItens() { Produto outro = produto("P-2"); estoque(outro, origem, 5); var t = service.criar(input(List.of(item(produto, 2), item(outro, 4)))); assertEquals(2, t.itens().size()); assertEquals(1, saldo(outro, origem)); assertEquals(4, saldo(outro, destino)); assertEquals(4, movimentos.count()); }
     @Test void origemIgualDestino() { assertThrows(IllegalArgumentException.class, () -> service.criar(new TransferenciaInput(origem.getId(), origem.getId(), responsavel.getId(), null, List.of(item(produto, 1))))); }
     @Test void transferenciaVazia() { assertThrows(IllegalArgumentException.class, () -> service.criar(input(List.of()))); }

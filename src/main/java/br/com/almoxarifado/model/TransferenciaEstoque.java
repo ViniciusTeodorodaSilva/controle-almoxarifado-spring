@@ -13,6 +13,12 @@ public class TransferenciaEstoque {
     @Column(name = "data_hora", nullable = false) private LocalDateTime dataHora;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private StatusTransferencia status;
     @Column(length = 1000) private String observacao;
+    @Column(name = "chave_idempotencia", length = 100, unique = true) private String chaveIdempotencia;
+    @Column(name = "hash_requisicao", length = 64) private String hashRequisicao;
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String value) { chaveIdempotencia = value; }
+    public String getHashRequisicao() { return hashRequisicao; }
+    public void setHashRequisicao(String value) { hashRequisicao = value; }
     @OneToMany(mappedBy = "transferencia", cascade = CascadeType.PERSIST)
     @OrderBy("id ASC") private List<ItemTransferencia> itens = new ArrayList<>();
     public Integer getId() { return id; }

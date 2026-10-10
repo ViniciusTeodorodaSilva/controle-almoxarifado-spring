@@ -1,6 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ApiError } from '../src/api/client.js'
+import { fitsLegacyQuantity, compareQuantities } from '../src/utils/quantities.js'
+test('entrada decimal não perde dígitos ao converter para contrato legado', () => {
+ for (const value of ['0.1', '0.20', '.5', '1e-6', '1000.00']) assert.equal(fitsLegacyQuantity(value), true)
+ for (const value of ['9007199254740993', '0.10000000000000001', '0x10', '1e309']) assert.equal(fitsLegacyQuantity(value), false)
+ assert.match(quantityError(null,'9007199254740993'),/precisão/)
+ assert.equal(compareQuantities('0.000001','0.0000009999995'),1)
+})
 import { filterRequests, filterStocks, filterMovements, quantityError, submitRequest, reconcileRequest, registerMovement, SubmissionError } from '../src/utils/operations.js'
 const product = { id: 1, codigo: 'MAT-01', nome: 'Válvula', descricao: 'Aço industrial', unidadeMedidaConfigurada: { sigla: 'UN', permiteFracionamento: false } }
 const rows = [{ id: 12, solicitante: { nome: 'João' }, responsavel: { nome: 'Maria' }, almoxarifado: { id: 4, nome: 'Central' }, produto: product, solicitacaoId: 12, itens: [{ produto: product }], quantidade: 8, dataHora: '2026-10-04T23:59:59' }]

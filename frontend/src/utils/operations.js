@@ -1,8 +1,10 @@
 import { contextBody } from './context.js'
+import { fitsLegacyQuantity } from './quantities.js'
 export const unitLabel = product => product?.unidadeMedidaConfigurada?.sigla || product?.unidadeMedida || '—'
 export function quantityError(product, value) {
   const amount = Number(value)
   if (String(value).trim() === '' || !Number.isFinite(amount) || amount <= 0) return 'Informe uma quantidade maior que zero.'
+  if (!fitsLegacyQuantity(value)) return 'A quantidade excede a precisão suportada. Nenhum valor foi arredondado.'
   if (product?.unidadeMedidaConfigurada?.permiteFracionamento === false && !Number.isInteger(amount)) return 'Esta unidade permite somente quantidades inteiras.'
   return ''
 }
@@ -60,7 +62,7 @@ export async function reconcileRequest(client, items, progress) {
   if (!equal) throw new Error('Os itens foram alterados ou não correspondem ao envio. Confira os detalhes; o envio não será repetido.')
   return { id: progress.id, completed: actual.length, uncertain: false }
 }
-export async function registerMovement(client, type, values, allowCreate) {
+export async function registerMovement(client, type, values, allowCreate, key) {
   let stock
   try { stock = await client.stock(values.produtoId, values.almoxarifadoId) }
   catch (error) {
@@ -75,5 +77,5 @@ export async function registerMovement(client, type, values, allowCreate) {
   if (type === 'saida' && Number(values.quantidade) > stock.quantidade) {
     const error = new Error('A quantidade de saída é superior ao saldo atual.'); error.status = 400; throw error
   }
-  return client.moveStock(type, values)
+  return client.moveStock(type, values, key)
 }

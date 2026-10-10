@@ -41,6 +41,8 @@ class AtendimentoSolicitacaoTests {
     @Autowired AtendimentoSolicitacaoRepository atendimentos;
     @Autowired ItemAtendimentoSolicitacaoRepository detalhes;
     @Autowired NecessidadeCompraRepository necessidades;
+    @Autowired br.com.almoxarifado.security.AuditoriaRepository auditorias;
+    @MockitoSpyBean br.com.almoxarifado.security.AuditoriaService audit;
     @Autowired UnidadeMedidaRepository unidades;
     @Autowired MockMvc mvc;
     Produto produto; Funcionario pessoa; Almoxarifado local; Solicitacao s; ItemSolicitacao item;
@@ -62,6 +64,37 @@ class AtendimentoSolicitacaoTests {
     OperacaoSolicitacaoResponse view(){return service.operacao(s.getId());}
     NecessidadeCompraInput necessidade(){return new NecessidadeCompraInput(item.getId(),pessoa.getId());}
     void intacto(){assertEquals(10,saldo());assertEquals(0,atendimentos.count());assertEquals(0,detalhes.count());assertEquals(0,movimentos.count());}
+    @Test void replayAtendimentoNaoDuplicaAuditoriaDeSucesso() {
+        separar(); String key=chave(); long antes=auditorias.count();
+        var primeiro=service.atender(s.getId(),input(2),key);
+        var repetido=service.atender(s.getId(),input(2),key);
+        assertEquals(primeiro.id(),repetido.id()); assertEquals(antes+1,auditorias.count()); assertEquals(8,saldo());
+    }
+    @Test void replayNecessidadeNaoDuplicaAuditoriaDeSucesso() {
+        saldo(0); aprovar(); String key=chave(); long antes=auditorias.count();
+        var primeiro=compras.criar(necessidade(),key); var repetido=compras.criar(necessidade(),key);
+        assertEquals(primeiro.id(),repetido.id()); assertEquals(antes+1,auditorias.count());
+    }
+    @Test void falhaAuditoriaAtendimentoReverteSaldoItensChaveEStatus() {
+        separar(); String key=chave(); long antes=auditorias.count();
+        transacao.executeWithoutResult(x -> doThrow(new IllegalStateException("Falha B8 audit"))
+                .when(audit).registrar(org.mockito.ArgumentMatchers.eq("ATENDIMENTOSOLICITACAO_ATENDER"),
+                    org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any()));
+        assertThrows(IllegalStateException.class,()->service.atender(s.getId(),input(2),key));
+        intacto(); assertTrue(atendimentos.findByChaveIdempotencia(key).isEmpty());
+        assertEquals("EM_SEPARACAO",view().status()); assertEquals(antes,auditorias.count());
+    }
+    @Test void falhaAuditoriaNecessidadeReverteRegistroEChave() {
+        saldo(0); aprovar(); String key=chave(); long antes=auditorias.count();
+        transacao.executeWithoutResult(x -> doThrow(new IllegalStateException("Falha B8 audit"))
+                .when(audit).registrar(org.mockito.ArgumentMatchers.eq("NECESSIDADECOMPRA_CRIAR"),
+                    org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any()));
+        assertThrows(IllegalStateException.class,()->compras.criar(necessidade(),key));
+        assertEquals(0,necessidades.count()); assertTrue(necessidades.findByChaveIdempotencia(key).isEmpty());
+        assertEquals(antes,auditorias.count()); assertEquals(0,saldo());
+    }
     @Test void aprovacaoApenasAutoriza(){aprovar();intacto();assertEquals("APROVADA",view().status());assertEquals(pessoa.getId(),view().responsavelAprovacao().id());assertNotNull(view().dataAprovacao());}
     @Test void aprovaDemandaSemSaldo(){saldo(0);aprovar();assertEquals("APROVADA",view().status());assertEquals(8,view().itens().get(0).quantidadeFaltante());}
     @Test void separacaoRegistraResponsavelSemMovimento(){separar();intacto();assertEquals("EM_SEPARACAO",view().status());assertEquals(pessoa.getId(),view().responsavelSeparacao().id());assertNotNull(view().dataSeparacao());}

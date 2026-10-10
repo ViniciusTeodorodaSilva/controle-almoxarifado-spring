@@ -141,6 +141,20 @@ Os contratos existentes continuam válidos. Estoque acrescenta `estoqueMinimo`/`
 | GET | `/transferencias/{id}` | Detalhes de todos os itens |
 | GET | `/transferencias/{id}/movimentacoes` | Saídas/entradas com saldos, origem/destino e responsável |
 
+Contrato incremental B8: `POST /transferencias` e `PUT /estoques/entrada|saida` aceitam
+`Idempotency-Key` (16–100 caracteres ASCII: letras, números, ponto, underscore, dois-pontos e hífen).
+O frontend envia uma chave por tentativa e conserva o mesmo conteúdo ao consultar resposta perdida;
+não há repetição automática. Mesma chave/conteúdo retorna a operação existente; conteúdo diferente
+retorna 409. Replay não grava movimento nem auditoria de sucesso adicionais. Na movimentação manual,
+`quantidade` da resposta é o saldo posterior da operação original; consultar GET estoque para o saldo
+atual. Sem header, clientes legados mantêm o comportamento anterior, sem garantia de replay.
+Os três comandos permanecem permissionados (`ESTOQUE_TRANSFERIR` ou `ESTOQUE_MOVIMENTAR`),
+com authority no HTTP/service e CSRF obrigatório. Nenhuma rota pública foi acrescentada.
+As duas colunas/índices novos exigem o script manual B8 do banco escolhido antes de usar o binário
+em schema externo; `ddl-auto=none` permanece. Scripts foram ensaiados somente em H2, sem homologação
+de MySQL/PostgreSQL. O contrato quantitativo ainda é legado DOUBLE/JSON Number: o B8 rejeita perda
+decimal no cálculo/conversão, sem promover isso a migração integral DECIMAL.
+
 PUT limites:
 
 ```json

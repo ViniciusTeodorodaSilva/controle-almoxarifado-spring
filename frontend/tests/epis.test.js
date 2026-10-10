@@ -20,5 +20,6 @@ test('labels legíveis e fallback',()=>{assert.equal(epiLabel('SEGREGADO'),'Segr
 
 test('saldo insuficiente tambem com virgula decimal',()=>assert.match(validateEpiDelivery(form,[{...line,fracionado:true,quantidade:'3,5'}]),/Saldo insuficiente/))
 
-test('residuo binario nao bloqueia quantidade disponivel',()=>assert.equal(validateEpiDelivery(form,[{...line,fracionado:true,quantidade:'0.2',saldoDisponivel:0.3-0.1}]),''))
+test('saldo legado abaixo do pedido nao recebe tolerancia de epsilon',()=>assert.match(validateEpiDelivery(form,[{...line,fracionado:true,quantidade:'0.2',saldoDisponivel:0.3-0.1}]),/Saldo insuficiente/))
+test('saldo decimal exato permite entrega sem residuo',()=>assert.equal(validateEpiDelivery(form,[{...line,fracionado:true,quantidade:'0.2',saldoDisponivel:0.2}]),''))
 test('diferenca real de um micro continua insuficiente',()=>assert.match(validateEpiDelivery(form,[{...line,fracionado:true,quantidade:'0.2',saldoDisponivel:0.199999}]),/Saldo insuficiente/))

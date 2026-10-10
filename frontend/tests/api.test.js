@@ -27,3 +27,13 @@ test('HTML inesperado não é tratado como uma lista válida',async()=>{
  globalThis.fetch=async()=>new Response('<html>Proxy</html>')
  await assert.rejects(request('/produtos'),/Resposta inesperada/)
 })
+test('transferência e movimento enviam a chave da tentativa sem gerar outra', async () => {
+ const calls=[]
+ globalThis.fetch=async(url,options)=>{calls.push({url,options});return new Response('{}')}
+ const key='b8-client-stable-key-001'
+ await api.createTransfer({origemId:1},key); await api.createTransfer({origemId:1},key)
+ await api.moveStock('saida',{quantidade:0.2},key)
+ assert.equal(calls.length,3)
+ for(const call of calls) assert.equal(call.options.headers['Idempotency-Key'],key)
+ assert.equal(calls[0].options.body,calls[1].options.body)
+})

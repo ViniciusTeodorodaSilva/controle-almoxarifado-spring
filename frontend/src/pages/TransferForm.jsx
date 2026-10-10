@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useResource } from '../hooks/useResource'
 import ProductPicker from '../components/ProductPicker'
@@ -6,6 +6,7 @@ import { Modal, Field, Notice, ResourceView, DataTable, quantity } from '../comp
 import { unitLabel } from '../utils/operations'
 import { transferItemError, transferError, transferPayload } from '../utils/stockIntelligence'
 export default function TransferForm({ onClose, onSaved, onChanged }) {
+  const attempt = useRef(null)
   const refs = useResource(useCallback(signal => Promise.all(['almoxarifados', 'funcionarios'].map(name => api.list(name, null, signal))), []))
   const [draft, setDraft] = useState({ origemId: '', destinoId: '', responsavelId: '', observacao: '', items: [] })
   const [product, setProduct] = useState(null), [amount, setAmount] = useState(''), [balance, setBalance] = useState(null)
@@ -53,16 +54,23 @@ export default function TransferForm({ onClose, onSaved, onChanged }) {
     finally { setBusy(false) }
   }
   async function execute() {
-    if (busy || uncertain) return
+    if (busy) return
+    if (!attempt.current) attempt.current = { key: crypto.randomUUID(), body: transferPayload(draft) }
     setBusy(true); setError('')
-    try { const result = await api.createTransfer(transferPayload(draft)); onSaved(result) }
-    catch (error) { setError(error.message); setConfirm(false); onChanged(); setRefresh(value => value + 1); if (!error.status || error.status >= 500) setUncertain(true) }
+    try { const result = await api.createTransfer(attempt.current.body, attempt.current.key); onSaved(result) }
+    catch (error) {
+      setError(error.message); setConfirm(false); onChanged(); setRefresh(value => value + 1)
+      // Keep the original key until its outcome is known, including a failed lookup.
+      if (uncertain || !error.status || error.status >= 500) setUncertain(true)
+      else { attempt.current = null; setUncertain(false) }
+    }
     finally { setBusy(false) }
   }
   const locked = busy || confirm || uncertain
   return <Modal title="Nova transferência" onClose={onClose} busy={busy}><form onSubmit={review}>
     <Notice error>{error}</Notice>
-    {uncertain && <Notice error>Não foi possível confirmar o resultado. A transferência pode ter sido recebida. Confira a listagem e as movimentações antes de iniciar outra; o envio não será repetido aqui.</Notice>}
+    {uncertain && <Notice error>Não foi possível confirmar o resultado. A transferência pode ter sido recebida. Confira a listagem ou consulte novamente o resultado desta tentativa antes de iniciar outra.</Notice>}
+    {uncertain && <button type="button" className="btn secondary" disabled={busy} onClick={execute}>Consultar resultado da tentativa</button>}
     <ResourceView resource={refs}>{([warehouses, people]) => <>
       <fieldset className="form-section" disabled={locked}><legend>Origem, destino e responsável</legend><div className="form-grid">
         <Field label="Almoxarifado de origem *" hint={draft.items.length ? 'Trocar a origem remove os itens deste rascunho.' : undefined}><select required value={draft.origemId} onChange={event => change('origemId', event.target.value)}><option value="">Selecionar origem</option>{warehouses.map(place => <option key={place.id} value={place.id}>{place.nome}</option>)}</select></Field>

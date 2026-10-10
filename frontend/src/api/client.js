@@ -58,7 +58,7 @@ export const api = {
   stockAlerts: (query, signal) => request('/estoques/alertas', { query, signal }),
   restock: (query, signal) => request('/estoques/reposicoes', { query, signal }),
   transfers: (query, signal) => request('/transferencias', { query, signal }),
-  createTransfer: body => request('/transferencias', { method: 'POST', body }),
+  createTransfer: (body, key) => request('/transferencias', { method: 'POST', body, headers: key ? { 'Idempotency-Key': key } : {} }),
   transferMovements: (id, signal) => request(`/transferencias/${id}/movimentacoes`, { signal }),
   list: (resource, query, signal) => request(`/${resource}`, { query, signal }),
   get: (resource, id, signal) => request(`/${resource}/${id}`, { signal }),
@@ -71,6 +71,6 @@ export const api = {
   addRequestItem: (id, produtoId, quantidade) => request(`/solicitacoes/${id}/itens`, { method: 'POST', query: { produtoId, quantidade } }),
   stock: (produtoId, almoxarifadoId, signal) => request(`/estoques/produto/${produtoId}/almoxarifado/${almoxarifadoId}`, { signal }),
   createStock: (produtoId, almoxarifadoId) => request('/estoques', { method: 'POST', body: { produto: { id: produtoId }, almoxarifado: { id: almoxarifadoId }, quantidade: 0 } }),
-  moveStock: (type, query) => request(`/estoques/${type}`, { method: 'PUT', query }),
+  moveStock: (type, query, key) => request(`/estoques/${type}`, { method: 'PUT', query, headers: key ? { 'Idempotency-Key': key } : {} }),
   requests: (status, signal) => request(status ? `/solicitacoes/status/${status}` : '/solicitacoes', { signal }),
 }

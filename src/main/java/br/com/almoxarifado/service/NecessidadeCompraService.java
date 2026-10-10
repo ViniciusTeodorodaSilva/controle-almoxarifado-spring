@@ -5,7 +5,6 @@ import br.com.almoxarifado.model.*;
 import br.com.almoxarifado.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.prepost.PreAuthorize;
-import br.com.almoxarifado.security.Auditar;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 @Service
@@ -18,15 +17,17 @@ public class NecessidadeCompraService {
     private final AlmoxarifadoRepository locais;
     private final SolicitacaoRepository solicitacoes;
     private final EstoqueRepository estoques;
+    private final br.com.almoxarifado.security.AuditoriaService audit;
     private final br.com.almoxarifado.compras.AlocacaoCompraRepository alocacoes;
     public NecessidadeCompraService(NecessidadeCompraRepository necessidades,ItemSolicitacaoRepository itens,
-        AtendimentoSolicitacaoService operacoes,ProdutoRepository produtos,AlmoxarifadoRepository locais,SolicitacaoRepository solicitacoes,EstoqueRepository estoques,br.com.almoxarifado.compras.AlocacaoCompraRepository alocacoes) {
+        AtendimentoSolicitacaoService operacoes,ProdutoRepository produtos,AlmoxarifadoRepository locais,SolicitacaoRepository solicitacoes,EstoqueRepository estoques,br.com.almoxarifado.compras.AlocacaoCompraRepository alocacoes,
+        br.com.almoxarifado.security.AuditoriaService audit) {
         this.alocacoes=alocacoes;
+        this.audit=audit;
         this.necessidades=necessidades;this.itens=itens;this.operacoes=operacoes;this.produtos=produtos;this.locais=locais;this.solicitacoes=solicitacoes;this.estoques=estoques;
     }
     @Transactional
     @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_CRIAR')")
-    @Auditar("NECESSIDADECOMPRA_CRIAR")
     public NecessidadeCompraResponse criar(NecessidadeCompraInput input,String chave) {
         AtendimentoSolicitacaoService.validarChave(chave);
         if(input==null||input.itemSolicitacaoId()==null||input.itemSolicitacaoId()<=0) throw new IllegalArgumentException("Item deve ser informado");
@@ -37,7 +38,7 @@ public class NecessidadeCompraService {
         var item=itens.findById(input.itemSolicitacaoId()).orElseThrow(()->new RecursoNaoEncontradoException("Item não encontrado"));
         if(item.getProduto()==null||s.getAlmoxarifado()==null) throw new ConflitoException("Item ou solicitação sem contexto válido");
         String fingerprint=AtendimentoSolicitacaoService.assinatura(item.getId()+":"+responsavel.getId());
-        var retry=necessidades.findByChaveIdempotencia(chave);
+        var retry=necessidades.buscarReplayAtual(chave);
         if(retry.isPresent()) {
             if(!retry.get().getAssinaturaPayload().equals(fingerprint)) throw new ConflitoException("Idempotency-Key já utilizada com outra necessidade");
             return resposta(retry.get());
@@ -58,7 +59,10 @@ public class NecessidadeCompraService {
         var n=new NecessidadeCompra();n.setItemSolicitacao(item);n.setSolicitacao(s);n.setProduto(produto);n.setAlmoxarifado(s.getAlmoxarifado());
         n.setQuantidade(falta);n.setQuantidadeRecebida(0);n.setResponsavel(responsavel);n.setDataHora(AtendimentoSolicitacaoService.agora());n.setStatus(StatusNecessidadeCompra.ABERTA);
         n.setMotivo("FALTA_DE_ESTOQUE");n.setChaveIdempotencia(chave);n.setAssinaturaPayload(fingerprint);
-        return resposta(necessidades.saveAndFlush(n));
+        necessidades.saveAndFlush(n);
+        audit.registrar("NECESSIDADECOMPRA_CRIAR", "NecessidadeCompra", n.getId().toString(),
+                responsavel.getId(), null, "status="+n.getStatus());
+        return resposta(n);
     }
     @Transactional(readOnly=true)
     @PreAuthorize("@autorizacao.permite('NECESSIDADE_COMPRA_LER')")

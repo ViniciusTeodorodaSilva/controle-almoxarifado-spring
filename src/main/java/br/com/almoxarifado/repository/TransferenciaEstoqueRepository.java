@@ -5,6 +5,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 public interface TransferenciaEstoqueRepository extends JpaRepository<TransferenciaEstoque, Integer> {
+    java.util.Optional<TransferenciaEstoque> findByChaveIdempotencia(String chave);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from TransferenciaEstoque t where t.chaveIdempotencia = :chave")
+    java.util.Optional<TransferenciaEstoque> buscarReplayAtual(@Param("chave") String chave);
     @Query("""
         select t from TransferenciaEstoque t
         where (:origemId is null or t.almoxarifadoOrigem.id = :origemId)

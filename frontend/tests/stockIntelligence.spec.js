@@ -132,11 +132,18 @@ test('erro de negócio do backend conserva rascunho e não altera saldo', async 
   await expect(page.getByRole('dialog').locator('tbody tr')).toHaveCount(1)
   expect((await call(request, `/estoques/produto/${fixture.product.id}/almoxarifado/${fixture.origin.id}`)).quantidade).toBe(before.quantidade)
 })
-test('resposta perdida bloqueia repetição e permite conferir uma única transferência', async ({ page, request }) => {
+test('resposta perdida permite consultar a mesma transferência sem duplicar saldos', async ({ page, request }) => {
   let writes = 0
+  const keys = [], bodies = []
   const before = await call(request, `/transferencias?origemId=${fixture.origin.id}`)
+  const saldoAntes = await call(request, `/estoques/produto/${fixture.product.id}/almoxarifado/${fixture.origin.id}`)
   await page.route('**/api/transferencias', async route => {
-    if (route.request().method() === 'POST') { writes++; await route.fetch(); await route.abort() }
+    if (route.request().method() === 'POST') {
+      writes++; keys.push(route.request().headers()['idempotency-key']); bodies.push(route.request().postData())
+      if (writes === 2) { await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ mensagem: 'Conflito concorrente durante consulta' }) }); return }
+      const response = await route.fetch()
+      if (writes === 1) await route.abort(); else await route.fulfill({ response })
+    }
     else await route.continue()
   })
   await startTransfer(page); await addProduct(page, fixture.product, 1)
@@ -144,9 +151,14 @@ test('resposta perdida bloqueia repetição e permite conferir uma única transf
   await page.getByRole('button', { name: 'Confirmar transferência', exact: true }).click()
   await expect(page.getByText('Não foi possível confirmar o resultado.', { exact: false })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Revisar transferência', exact: true })).toBeDisabled()
-  await page.getByRole('button', { name: 'Voltar e conferir transferências', exact: true }).click()
-  expect(writes).toBe(1)
+  await page.getByRole('button', { name: 'Consultar resultado da tentativa', exact: true }).click()
+  await expect(page.getByText('Conflito concorrente durante consulta', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Revisar transferência', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Consultar resultado da tentativa', exact: true }).click()
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+  expect(writes).toBe(3); expect(keys[0]).toBeTruthy(); expect(new Set(keys).size).toBe(1); expect(new Set(bodies).size).toBe(1)
   expect((await call(request, `/transferencias?origemId=${fixture.origin.id}`)).length).toBe(before.length + 1)
+  expect((await call(request, `/estoques/produto/${fixture.product.id}/almoxarifado/${fixture.origin.id}`)).quantidade).toBe(saldoAntes.quantidade - 1)
 })
 test('filtros e pesquisa encontram transferência e preservam todos os seus itens', async ({ page }) => {
   await page.goto('/transferencias')

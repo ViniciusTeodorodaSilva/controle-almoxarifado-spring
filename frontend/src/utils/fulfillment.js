@@ -1,4 +1,5 @@
 import { quantityError } from './operations.js'
+import { compareQuantities, sumQuantities } from './quantities.js'
 export const requestStatuses = ['PENDENTE', 'APROVADA', 'EM_SEPARACAO', 'PARCIALMENTE_ATENDIDA', 'ATENDIDA', 'REJEITADA']
 export const canFulfill = request => request.compatibilidadeLegada !== 'INCONSISTENTE' && ['EM_SEPARACAO', 'PARCIALMENTE_ATENDIDA'].includes(request.status)
 export function suggestedAmounts(items) {
@@ -19,9 +20,10 @@ export function fulfillmentDraft(items, amounts, responsible) {
   const byProduct = new Map()
   for (const selectedItem of selected) {
     const item = items.find(row => row.id === selectedItem.itemSolicitacaoId)
-    const total = (byProduct.get(item.produto.id) || 0) + selectedItem.quantidade
+    const total = sumQuantities(byProduct.get(item.produto.id) || 0, selectedItem.quantidade)
     byProduct.set(item.produto.id, total)
-    if (total - item.saldoAtual > Number.EPSILON * Math.max(1, total) * selected.length) errors[item.id] = 'A soma dos itens deste material supera o saldo atual.'
+    const comparison = compareQuantities(total, item.saldoAtual)
+    if (comparison === null || comparison > 0) errors[item.id] = 'A soma dos itens deste material supera o saldo atual.'
   }
   if (!selected.length && !Object.keys(errors).length) errors.form = 'Informe ao menos uma quantidade positiva.'
   return { errors, body: { responsavelId: Number(responsible), itens: selected } }

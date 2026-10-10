@@ -1,8 +1,9 @@
 export const epiLabels = { INICIAL:'Entrega inicial', REPOSICAO:'Reposição', SUBSTITUICAO:'Substituição', ENTREGA:'Entrega', DEVOLUCAO:'Devolução', DESCARTE:'Descarte', ESTOQUE:'Estoque utilizável', SEGREGADO:'Segregado / indisponível', PERDA:'Perda', NOVO:'Novo / sem uso', USADO:'Usado', DANIFICADO:'Danificado', PERDIDO:'Perdido' }
 export const epiLabel = value => epiLabels[value] || value || '—'
+import { compareQuantities } from './quantities.js'
 export function epiExceedsStock(value, stock) {
- const available=Number(stock), requested=Number(String(value).replace(',','.'))
- return !Number.isFinite(available)||requested-available>1e-12
+ const comparison=compareQuantities(String(value).replace(',','.'),stock)
+ return comparison===null||comparison>0
 }
 export function epiQuantity(value, integer = false) {
  const text=String(value??'').trim().replace(',','.')

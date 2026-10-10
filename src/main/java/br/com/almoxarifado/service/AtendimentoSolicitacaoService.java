@@ -26,11 +26,14 @@ public class AtendimentoSolicitacaoService {
     private final AtendimentoSolicitacaoRepository atendimentos;
     private final ItemAtendimentoSolicitacaoRepository itensAtendimento;
     private final NecessidadeCompraRepository necessidades;
+    private final br.com.almoxarifado.security.AuditoriaService audit;
     public AtendimentoSolicitacaoService(SolicitacaoRepository solicitacoes, ItemSolicitacaoRepository itens, EstoqueRepository estoques,
         ProdutoRepository produtos, FuncionarioRepository pessoas, MovimentacaoRepository movimentos,
-        AtendimentoSolicitacaoRepository atendimentos, ItemAtendimentoSolicitacaoRepository itensAtendimento, NecessidadeCompraRepository necessidades) {
+        AtendimentoSolicitacaoRepository atendimentos, ItemAtendimentoSolicitacaoRepository itensAtendimento, NecessidadeCompraRepository necessidades,
+        br.com.almoxarifado.security.AuditoriaService audit) {
         this.solicitacoes=solicitacoes; this.itens=itens; this.estoques=estoques; this.produtos=produtos; this.pessoas=pessoas;
         this.movimentos=movimentos; this.atendimentos=atendimentos; this.itensAtendimento=itensAtendimento; this.necessidades=necessidades;
+        this.audit=audit;
     }
     Solicitacao bloquear(Integer id) { return solicitacoes.buscarParaAtualizacao(id).orElseThrow(()->new RecursoNaoEncontradoException("Solicitação não encontrada")); }
     Funcionario pessoa(Integer id) {
@@ -67,7 +70,6 @@ public class AtendimentoSolicitacaoService {
     }
     @Transactional
     @PreAuthorize("@autorizacao.permite('SOLICITACAO_ATENDER')")
-    @Auditar("ATENDIMENTOSOLICITACAO_ATENDER")
     public AtendimentoResponse atender(Integer id,AtendimentoInput input,String chave) {
         validarChave(chave);
         if(input==null||input.itens()==null||input.itens().isEmpty()||input.itens().size()>500) throw new IllegalArgumentException("Informe de 1 a 500 itens");
@@ -80,7 +82,7 @@ public class AtendimentoSolicitacaoService {
         var responsavel=pessoa(input.responsavelId());
         String fingerprint=assinatura(id+":"+responsavel.getId()+":"+pedidos);
         var s=bloquear(id);
-        var anterior=atendimentos.findByChaveIdempotencia(chave);
+        var anterior=atendimentos.buscarReplayAtual(chave);
         if(anterior.isPresent()) {
             var a=anterior.get();
             if(!a.getAssinaturaPayload().equals(fingerprint)) throw new ConflitoException("Idempotency-Key já utilizada com outra operação");
@@ -135,6 +137,8 @@ public class AtendimentoSolicitacaoService {
         boolean completa=view.itens().stream().allMatch(i->Double.compare(i.getQuantidade(),view.atendidas().get(i.getId()))==0);
         s.setStatus(completa?StatusSolicitacao.ATENDIDA:StatusSolicitacao.PARCIALMENTE_ATENDIDA); solicitacoes.save(s);
         itensAtendimento.flush(); movimentos.flush();
+        audit.registrar("ATENDIMENTOSOLICITACAO_ATENDER", "AtendimentoSolicitacao", atendimento.getId().toString(),
+                responsavel.getId(), "status="+view.status(), "status="+s.getStatus());
         return respostaAtendimento(atendimento);
     }
     @Transactional(readOnly=true)

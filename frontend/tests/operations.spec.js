@@ -135,6 +135,32 @@ test('entrada/saída reais: novo estoque, quantidade inválida, saldo insuficien
   await page.getByLabel('Pesquisar movimentações').fill(fixture.responsible.nome)
   await expect(page.locator('tbody tr')).toHaveCount(1)
 })
+test('saída com resposta perdida consulta mesma tentativa mesmo após esgotar saldo', async ({ page, request }) => {
+  const saldo = await call(request, `/estoques/produto/${fixture.product.id}/almoxarifado/${fixture.warehouse.id}`)
+  const historico = await call(request, '/movimentacoes/produto/' + fixture.product.id)
+  expect(saldo.quantidade).toBeGreaterThan(0)
+  const keys = [], urls = []
+  await page.route('**/api/estoques/saida?*', async route => {
+    keys.push(route.request().headers()['idempotency-key']); urls.push(route.request().url())
+    if (keys.length === 2) { await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ mensagem: 'Conflito concorrente durante consulta' }) }); return }
+    const response = await route.fetch()
+    if (keys.length === 1) await route.abort(); else await route.fulfill({ response })
+  })
+  await page.goto('/estoques'); await identifyMovement(page, 'Registrar saída')
+  await page.getByLabel('Quantidade *', { exact: true }).fill(String(saldo.quantidade))
+  await page.getByRole('button', { name: 'Revisar saída', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirmar movimentação', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Consultar resultado da tentativa', exact: true })).toBeVisible()
+  await expect(page.getByLabel('Quantidade *', { exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Consultar resultado da tentativa', exact: true }).click()
+  await expect(page.getByText('Conflito concorrente durante consulta', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Quantidade *', { exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Consultar resultado da tentativa', exact: true }).click()
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+  expect(keys.length).toBe(3); expect(keys[0]).toBeTruthy(); expect(new Set(keys).size).toBe(1); expect(new Set(urls).size).toBe(1)
+  expect((await call(request, `/estoques/produto/${fixture.product.id}/almoxarifado/${fixture.warehouse.id}`)).quantidade).toBe(0)
+  expect((await call(request, '/movimentacoes/produto/' + fixture.product.id)).length).toBe(historico.length + 1)
+})
 for (const [name, width] of [['tablet', 768], ['mobile', 390]]) test(`${name}: novos formulários, itens e pesquisas sem overflow`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
   await page.goto('/solicitacoes'); await identifyRequest(page); await addItem(page, fixture.product, 2); await addItem(page, fixture.fractionalProduct, 0.5)

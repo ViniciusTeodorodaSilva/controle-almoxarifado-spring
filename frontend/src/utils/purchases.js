@@ -1,4 +1,5 @@
 import { contextBody } from './context.js'
+import { quantityNumber, sumQuantities } from './quantities.js'
 export const purchaseStatuses = ['RASCUNHO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'PARCIALMENTE_RECEBIDO', 'RECEBIDO', 'CANCELADO']
 export const money = value => { const [whole, fractional = ''] = String(value ?? '0').split('.'); const decimals = fractional.replace(/0+$/, '').padEnd(2, '0'); return `R$ ${whole.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${decimals}` }
 export function needsToItems(needs) {
@@ -7,7 +8,7 @@ export function needsToItems(needs) {
   const q = n.compra?.quantidadeDisponivel ?? n.quantidade
   if (!(q > 0)) continue
   const item = groups.get(n.produto.id) || { produto: n.produto, produtoId: n.produto.id, quantidade: 0, valorUnitario: '', paraEstoque: false, observacao: '', alocacoes: [] }
-  item.quantidade = Number((item.quantidade + q).toPrecision(15))
+  item.quantidade = quantityNumber(sumQuantities(item.quantidade, q))
   item.alocacoes.push({ necessidadeId: n.id, solicitacaoId: n.solicitacaoId, quantidade: q })
   groups.set(n.produto.id, item)
  }

@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "movimentacao", indexes = {@Index(name="ix_movimentacao_ctx_obra",columnList="contexto_obra_id"),@Index(name="ix_movimentacao_ctx_ordem_servico",columnList="contexto_ordem_servico_id"),@Index(name="ix_movimentacao_ctx_centro_custo",columnList="contexto_centro_custo_id")})
 public class Movimentacao {
+    @Column(name="chave_idempotencia", length=100, unique=true) @JsonIgnore private String chaveIdempotencia;
+    @Column(name="hash_requisicao", length=64) @JsonIgnore private String hashRequisicao;
+    public String getChaveIdempotencia(){return chaveIdempotencia;}
+    public void setChaveIdempotencia(String v){chaveIdempotencia=v;}
+    public String getHashRequisicao(){return hashRequisicao;}
+    public void setHashRequisicao(String v){hashRequisicao=v;}
  @jakarta.persistence.Embedded private br.com.almoxarifado.obras.ContextoOperacional contexto;
  @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_obra_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.Obra contextoObraRef;
  @jakarta.persistence.ManyToOne(fetch=jakarta.persistence.FetchType.LAZY) @jakarta.persistence.JoinColumn(name="contexto_ordem_servico_id",insertable=false,updatable=false) @com.fasterxml.jackson.annotation.JsonIgnore private br.com.almoxarifado.obras.OrdemServico contextoOSRef;

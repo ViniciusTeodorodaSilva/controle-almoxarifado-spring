@@ -30,20 +30,9 @@ public class EstoqueService {
         Estoque estoque = repository.buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque nao encontrado"));
         double anterior = estoque.getQuantidade();
-        double posterior = tipo == TipoMovimentacao.SAIDA ? anterior - quantidade : anterior + quantidade;
-        // Zero only negligible binary residue, one millionth of the minimum EPI quantity.
-        if (Math.abs(posterior) <= 1e-12) posterior = 0;
-        if (!Double.isFinite(anterior) || anterior < 0 || !Double.isFinite(posterior)
-                || posterior < 0 || posterior == anterior) {
-            throw new ConflitoException("Saldo insuficiente ou quantidade fora da precisao do estoque");
-        }
-        // Permit ordinary binary roundoff, but never a discrepancy of half the minimum EPI unit.
-        var delta = java.math.BigDecimal.valueOf(posterior)
-                .subtract(java.math.BigDecimal.valueOf(anterior)).abs();
-        if (delta.subtract(java.math.BigDecimal.valueOf(quantidade)).abs()
-                .compareTo(new java.math.BigDecimal("0.0000005")) >= 0) {
-            throw new ConflitoException("Variacao fora da precisao de seis decimais do EPI");
-        }
+        double posterior;
+        try { posterior = QuantidadesOperacionais.saldo(anterior, quantidade, tipo == TipoMovimentacao.ENTRADA); }
+        catch (IllegalArgumentException e) { throw new ConflitoException(e.getMessage()); }
         Funcionario funcionario = funcionarioRepository.findById(funcionarioId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario nao encontrado"));
         Funcionario responsavel = funcionarioRepository.findById(responsavelId)
@@ -64,13 +53,16 @@ public class EstoqueService {
     private final AlmoxarifadoRepository almoxarifadoRepository;
     private final MovimentacaoRepository movimentacaoRepository;
     private final FuncionarioRepository funcionarioRepository;
+    private final br.com.almoxarifado.security.AuditoriaService audit;
 
-    public EstoqueService(EstoqueRepository repository, ProdutoRepository produtoRepository, AlmoxarifadoRepository almoxarifadoRepository, MovimentacaoRepository movimentacaoRepository, FuncionarioRepository funcionarioRepository) {
+    public EstoqueService(EstoqueRepository repository, ProdutoRepository produtoRepository, AlmoxarifadoRepository almoxarifadoRepository, MovimentacaoRepository movimentacaoRepository, FuncionarioRepository funcionarioRepository,
+            br.com.almoxarifado.security.AuditoriaService audit) {
         this.repository = repository;
         this.produtoRepository = produtoRepository;
         this.almoxarifadoRepository = almoxarifadoRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.funcionarioRepository = funcionarioRepository;
+        this.audit = audit;
     }
     @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 
@@ -124,8 +116,23 @@ public class EstoqueService {
 
     @Transactional
     @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
-    @Auditar("ESTOQUE_ENTRADAESTOQUE")
     public Estoque entradaEstoque(Integer produtoId, Integer almoxarifadoId, double quantidade, Integer solicitanteId, Integer responsavelId) {
+        return entradaEstoque(produtoId, almoxarifadoId, quantidade, solicitanteId, responsavelId, null);
+    }
+    @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    public Estoque entradaEstoque(Integer produtoId, Integer almoxarifadoId, java.math.BigDecimal quantidade, Integer solicitanteId, Integer responsavelId, String chave) {
+        return entradaEstoque(produtoId, almoxarifadoId, QuantidadesOperacionais.representar(quantidade), solicitanteId, responsavelId, chave);
+    }
+    @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    public Estoque saidaEstoque(Integer produtoId, Integer almoxarifadoId, java.math.BigDecimal quantidade, Integer solicitanteId, Integer responsavelId, String chave) {
+        return saidaEstoque(produtoId, almoxarifadoId, QuantidadesOperacionais.representar(quantidade), solicitanteId, responsavelId, chave);
+    }
+    @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    public Estoque entradaEstoque(Integer produtoId, Integer almoxarifadoId, double quantidade, Integer solicitanteId, Integer responsavelId, String chave) {
+        String hash = assinatura(chave, TipoMovimentacao.ENTRADA, produtoId, almoxarifadoId, quantidade, solicitanteId, responsavelId);
         if (produtoId == null || almoxarifadoId == null || solicitanteId == null || responsavelId == null) {
             throw new IllegalArgumentException("Produto, almoxarifado, solicitante e responsável devem ser informados");
         }
@@ -136,6 +143,8 @@ public class EstoqueService {
         // Produto antes do estoque, como atendimento/transferência: evita ordem inversa nos FKs.
         produtoRepository.buscarParaAtualizacao(produtoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
+        Estoque repetido = replay(chave, hash);
+        if (repetido != null) return repetido;
         Estoque estoque = repository
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
@@ -152,12 +161,7 @@ public class EstoqueService {
 
         double saldoAnterior = estoque.getQuantidade();
 
-        if (!Double.isFinite(saldoAnterior) || saldoAnterior < 0
-                || !Double.isFinite(saldoAnterior + quantidade)) {
-            throw new IllegalArgumentException("Saldo de estoque inválido");
-        }
-
-        estoque.setQuantidade(estoque.getQuantidade() + quantidade);
+        estoque.setQuantidade(QuantidadesOperacionais.saldo(saldoAnterior, quantidade, true));
 
         double saldoPosterior = estoque.getQuantidade();
 
@@ -172,7 +176,10 @@ public class EstoqueService {
         movimentacao.setSolicitante(solicitante);
         movimentacao.setResponsavel(responsavel);
 
-        movimentacaoRepository.save(movimentacao);
+        movimentacao.setChaveIdempotencia(chave); movimentacao.setHashRequisicao(hash);
+        movimentacaoRepository.saveAndFlush(movimentacao);
+        audit.registrar("ESTOQUE_ENTRADAESTOQUE", "Movimentacao", movimentacao.getId().toString(), responsavelId,
+                "quantidade=" + saldoAnterior, "quantidade=" + saldoPosterior);
 
 
         return repository.save(estoque);
@@ -180,13 +187,18 @@ public class EstoqueService {
 
     @Transactional
     @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
-    @Auditar("ESTOQUE_SAIDAESTOQUE")
     public Estoque saidaEstoque(
             Integer produtoId,
             Integer almoxarifadoId,
             double quantidade,
             Integer solicitanteId,
             Integer responsavelId) {
+        return saidaEstoque(produtoId, almoxarifadoId, quantidade, solicitanteId, responsavelId, null);
+    }
+    @Transactional
+    @PreAuthorize("@autorizacao.permite('ESTOQUE_MOVIMENTAR')")
+    public Estoque saidaEstoque(Integer produtoId, Integer almoxarifadoId, double quantidade, Integer solicitanteId, Integer responsavelId, String chave) {
+        String hash = assinatura(chave, TipoMovimentacao.SAIDA, produtoId, almoxarifadoId, quantidade, solicitanteId, responsavelId);
 
         if (produtoId == null || almoxarifadoId == null || solicitanteId == null || responsavelId == null) {
             throw new IllegalArgumentException("Produto, almoxarifado, solicitante e responsável devem ser informados");
@@ -200,6 +212,8 @@ public class EstoqueService {
         // Produto antes do estoque, como atendimento/transferência: evita ordem inversa nos FKs.
         produtoRepository.buscarParaAtualizacao(produtoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
+        Estoque repetido = replay(chave, hash);
+        if (repetido != null) return repetido;
         Estoque estoque = repository
                 .buscarParaAtualizacao(produtoId, almoxarifadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado"));
@@ -220,7 +234,7 @@ public class EstoqueService {
 
         double saldoAnterior = estoque.getQuantidade();
 
-        estoque.setQuantidade(estoque.getQuantidade() - quantidade);
+        estoque.setQuantidade(QuantidadesOperacionais.saldo(saldoAnterior, quantidade, false));
 
         double saldoPosterior = estoque.getQuantidade();
 
@@ -235,10 +249,35 @@ public class EstoqueService {
         movimentacao.setSolicitante(solicitante);
         movimentacao.setResponsavel(responsavel);
 
-        movimentacaoRepository.save(movimentacao);
+        movimentacao.setChaveIdempotencia(chave); movimentacao.setHashRequisicao(hash);
+        movimentacaoRepository.saveAndFlush(movimentacao);
+        audit.registrar("ESTOQUE_SAIDAESTOQUE", "Movimentacao", movimentacao.getId().toString(), responsavelId,
+                "quantidade=" + saldoAnterior, "quantidade=" + saldoPosterior);
 
         return repository.save(estoque);
 
+    }
+    private String assinatura(String chave, TipoMovimentacao tipo, Integer produto, Integer local, double qtd, Integer solicitante, Integer responsavel) {
+        if (chave == null) return null;
+        if (!chave.matches("[A-Za-z0-9._:-]{16,100}")) throw new IllegalArgumentException("Chave de idempotência inválida");
+        QuantidadesOperacionais.positiva(qtd);
+        String canonico = tipo + "|" + produto + "|" + local + "|" + java.math.BigDecimal.valueOf(qtd).stripTrailingZeros().toPlainString() + "|" + solicitante + "|" + responsavel;
+        try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(canonico.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
+        catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException("SHA-256 indisponível", e); }
+    }
+    private Estoque replay(String chave, String hash) {
+        if (chave == null) return null;
+        // Current read only after the product lock; avoids replay from an old RR snapshot.
+        var anterior = movimentacaoRepository.buscarReplayAtual(chave);
+        if (anterior.isEmpty()) return null;
+        var movimento = anterior.get();
+        if (!hash.equals(movimento.getHashRequisicao())) throw new ConflitoException("Chave de idempotência já utilizada com outra movimentação");
+        // Replay returns the operation's balance snapshot, never writes an old balance back.
+        var atual = repository.findByProdutoIdAndAlmoxarifadoId(movimento.getProduto().getId(), movimento.getAlmoxarifado().getId()).orElseThrow();
+        var resposta = new Estoque(); resposta.setId(atual.getId()); resposta.setProduto(movimento.getProduto());
+        resposta.setAlmoxarifado(movimento.getAlmoxarifado()); resposta.setQuantidade(movimento.getSaldoPosterior());
+        resposta.setEstoqueMinimo(atual.getEstoqueMinimo()); resposta.setEstoqueMaximo(atual.getEstoqueMaximo());
+        return resposta;
     }
     @PreAuthorize("@autorizacao.permite('ESTOQUE_LER')")
 

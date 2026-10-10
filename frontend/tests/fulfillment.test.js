@@ -12,6 +12,11 @@ test('negativo e não finito rejeitados', () => { for(const raw of ['-1','Infini
 test('fracionamento respeita unidade configurada', () => assert.match(fulfillmentDraft([item],{1:'1.5'},9).errors[1],/inteiras/))
 test('pendente e saldo são limites diferentes', () => { assert.match(fulfillmentDraft([item],{1:'9'},9).errors[1],/pendente/);assert.match(fulfillmentDraft([item],{1:'6'},9).errors[1],/saldo/) })
 test('itens repetidos não somam mais que estoque físico', () => assert.match(fulfillmentDraft([item,{...item,id:2}],{1:'3',2:'3'},9).errors[2],/soma/))
+test('soma decimal atende saldo exato mas rejeita excesso menor que epsilon', () => {
+ const decimal = {...item, produto:{...item.produto,unidadeMedidaConfigurada:{permiteFracionamento:true}}, saldoAtual:0.3}
+ assert.deepEqual(fulfillmentDraft([decimal,{...decimal,id:2}],{1:'0.1',2:'0.2'},9).errors,{})
+ assert.match(fulfillmentDraft([decimal,{...decimal,id:2}],{1:'0.10000000000000002',2:'0.2'},9).errors[2],/soma/)
+})
 test('responsável obrigatório', () => assert.ok(fulfillmentDraft([item],{1:'1'},'').errors.responsible))
 test('pesquisa de necessidades por contexto e acentos', () => { const rows=[{id:3,solicitacaoId:7,produto:item.produto,almoxarifado:{nome:'Central'}}];for(const term of ['valvula','BES-01','#7','Central'])assert.equal(filterNeeds(rows,term).length,1);assert.equal(filterNeeds(rows,'ausente').length,0) })
 test('atendimento mantém chave em retries e envia somente contrato explícito', async () => { const calls=[];globalThis.fetch=async(url,options)=>{calls.push({url,options});return new Response('{"id":4}')};const body={responsavelId:9,itens:[{itemSolicitacaoId:1,quantidade:2}]};await api.fulfill(7,body,'stable-key-01');await api.fulfill(7,body,'stable-key-01');assert.equal(calls.length,2);for(const {url,options} of calls){assert.equal(url,'/api/solicitacoes/7/atendimentos');assert.equal(options.headers['Idempotency-Key'],'stable-key-01');assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body),body)} })

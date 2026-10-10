@@ -119,7 +119,7 @@ public class EpiService {
    if(BigDecimal.valueOf(l.quantidade.doubleValue()).compareTo(l.quantidade)!=0)throw new ConflitoException("Quantidade fora da precisao do estoque legado");
    ValidacaoQuantidade.validar(p,l.quantidade.doubleValue());
    if(l.fabricacao!=null&&l.fabricacao.isAfter(LocalDate.now())||l.validadeFisica!=null&&(l.validadeFisica.isBefore(LocalDate.now())||l.fabricacao!=null&&l.validadeFisica.isBefore(l.fabricacao)))throw new IllegalArgumentException("Datas fisicas invalidas ou item vencido");
-   double saldo=stocks.get(l.produtoId).getQuantidade(),q=l.quantidade.doubleValue();if(!Double.isFinite(saldo)||(q>saldo&&q-saldo>1e-12)||saldo-q==saldo)throw new ConflitoException("Estoque insuficiente ou quantidade fora da precisao");
+   double saldo=stocks.get(l.produtoId).getQuantidade();if(!Double.isFinite(saldo)||BigDecimal.valueOf(saldo).compareTo(l.quantidade)<0)throw new ConflitoException("Estoque insuficiente ou quantidade fora da precisao");
    if(l.origemItemId!=null){var o=origens.get(l.origemItemId);if(!registro(o.registroId).funcionarioId.equals(f.getId()))throw new ConflitoException("Origem pertence a outro funcionario");validarRestante(o,l.quantidadeSubstituida);}
   }
   var r=novo(in.motivo==MotivoEntrega.SUBSTITUICAO?TipoRegistroEpi.SUBSTITUICAO:TipoRegistroEpi.ENTREGA,f,resp,w,ctx,obs,chave,assinatura);r.motivo=in.motivo;r.recebimentoConfirmado=true;registros.saveAndFlush(r);
